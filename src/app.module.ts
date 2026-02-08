@@ -17,10 +17,10 @@ import { ReportsModule } from './reports/reports.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb+srv://tolboni614_db_user:wmGmT0y8krc8U04t@cluster0.01kthea.mongodb.net/project-task-management?retryWrites=true&w=majority'),
+    MongooseModule.forRoot(process.env.MONGODB_URI || ''),
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'KDJHFBJUYHDBJMDFJMAGHDFBDNHC',
+      secret: process.env.JWT_SECRET || '',
       signOptions: { expiresIn: '7d' },
     }),
     AuthModule,
