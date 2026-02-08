@@ -61,6 +61,10 @@ export class UsersService {
     return this.mapToResponseDto(user);
   }
 
+    async findByEmail(email: string): Promise<User | null> {
+    return this.userModel.findOne({ email: email.toLowerCase() }).exec();
+  }
+
 //UPDATE USER SERVICES
   async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
     // If password is being updated, hash it
