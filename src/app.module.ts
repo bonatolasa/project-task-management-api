@@ -17,7 +17,7 @@ import { ReportsModule } from './reports/reports.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    MongooseModule.forRoot(process.env.MONGODB_URI || ''),
+    MongooseModule.forRoot(process.env.MONGODB_URL || ''),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET || '',
