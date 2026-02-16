@@ -20,7 +20,7 @@ import { ReportsModule } from './reports/reports.module';
     MongooseModule.forRoot(process.env.MONGODB_URL || ''),
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || '',
+      secret: process.env.JWT_SECRET!,
       signOptions: { expiresIn: '7d' },
     }),
     AuthModule,

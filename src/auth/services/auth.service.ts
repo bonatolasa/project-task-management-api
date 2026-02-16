@@ -4,6 +4,7 @@ import { UsersService } from 'src/users/services/users.service';
 import { LoginDto, RegisterDto } from '../dtos/auth.dto';
 import { AuthResponseDto } from '../responses/auth.response';
 import * as bcrypt from 'bcrypt';
+import { CommonUtils } from 'src/commons/utils';
 
 
 @Injectable()
@@ -24,8 +25,8 @@ export class AuthService {
     const user = await this.usersService.createUsers(registerDto);
 
     // Generate token
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const accessToken = this.jwtService.sign(payload);
+    const jwtData = { sub: user.id, email: user.email, role: user.role };
+    const accessToken =CommonUtils.generateJwtToken(jwtData);
 
     return {
       success: true,
@@ -65,8 +66,11 @@ export class AuthService {
     await this.usersService.updateLastLogin(user._id.toString());
 
     // Generate token
-    const payload = { sub: user._id.toString(), email: user.email, role: user.role };
-    const accessToken = this.jwtService.sign(payload);
+    const JwtLoginData = { 
+      sub: user._id.toString(),
+      email: user.email, 
+      role: user.role };
+    const accessToken =CommonUtils.generateJwtToken(JwtLoginData);
 
     return {
       success: true,
