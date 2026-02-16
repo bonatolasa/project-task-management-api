@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Team } from '../schemas/team.schema';
@@ -13,7 +13,8 @@ export class TeamsService {
     private usersService: UsersService,
   ) {}
 
-  // create a new team
+
+    // create a new team
   async createTeam(createTeamDto: CreateTeamDto): Promise<TeamResponseDto> {
     const createdTeam = new this.teamModel(createTeamDto);
     const savedTeam = await createdTeam.save();

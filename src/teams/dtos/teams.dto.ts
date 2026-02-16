@@ -10,7 +10,7 @@ export class CreateTeamDto {
   description?: string;
 
   @IsMongoId()
-  manager: string;
+  manager: string
 
   @IsArray()
   @IsMongoId({ each: true })
