@@ -4,7 +4,8 @@ import { Model } from 'mongoose';
 import { User } from '../schemas/users.schemas';
 import { CreateUserDto, UpdateUserDto } from '../dtos/users.dto';
 import { UserResponseDto } from '../responses/users.response';
-import bcrypt from 'node_modules/bcryptjs';
+import * as bcrypt from 'bcryptjs';
+
 
 
 @Injectable()
@@ -55,7 +56,7 @@ export class UsersService {
       .exec();
     
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new BadRequestException(`User with ID ${id} not found`);
     }
     
     return this.mapToResponseDto(user);
@@ -74,14 +75,18 @@ export class UsersService {
 
     //if email is being updated, check for duplication
     if (updateUserDto.email) {
+      const normalizedEmail = updateUserDto.email.toLowerCase().trim();
+
       const existingUser = await this.userModel.findOne({   
-        email: updateUserDto.email.toLowerCase(),
+        email: normalizedEmail,
         _id: { $ne: id } // Exclude current user from check
       });
     
       if (existingUser) {
         throw new BadRequestException('Email already exists');
       }
+
+      updateUserDto.email = normalizedEmail;
     }
 
     const updatedUser = await this.userModel
