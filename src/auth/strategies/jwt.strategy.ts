@@ -22,7 +22,7 @@ async validate(payload: any) {
   // Optionally fetch user from DB if you want fresh data:
   // const user = await this.usersService.findById(sub);
                 
-  return { id: sub, role, ...rest }; // <-- attach role explicitly
+  return { id: sub, role: role?.toLowerCase(), ...rest }; // <-- attach role explicitly
 
   }
 }
