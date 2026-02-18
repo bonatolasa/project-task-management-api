@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/services/users.service';
 import { LoginDto, RegisterDto } from '../dtos/auth.dto';
 import { AuthResponseDto } from '../responses/auth.response';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { CommonUtils } from 'src/commons/utils';
 
 
