@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { ProjectStatus } from '../../enums/project-status.enum';
 
 @Schema({ timestamps: true })
@@ -11,10 +11,10 @@ export class Project extends Document {
   description: string;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Team', required: true })
-  team: string;
+  team: Types.ObjectId;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
-  manager: string;
+  manager: Types.ObjectId;
 
   @Prop({ required: true })
   startDate: Date;
@@ -32,7 +32,7 @@ export class Project extends Document {
   completedAt: Date;
 
   @Prop([{ type: MongooseSchema.Types.ObjectId, ref: 'User' }])
-  contributors: string[];
+  contributors: Types.ObjectId[];
 
   @Prop() createdAt: Date;
   @Prop() updatedAt: Date;
