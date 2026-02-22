@@ -12,13 +12,13 @@ export class Task extends Document {
   description: string;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Project', required: true })
-  project: string;
+  project: Types.ObjectId;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
-  assignedTo: string;
+  assignedTo: Types.ObjectId;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
-  createdBy: string;
+  createdBy: Types.ObjectId;
 
   @Prop({ enum: TaskStatus, default: TaskStatus.PENDING })
   status: TaskStatus;
@@ -39,7 +39,7 @@ export class Task extends Document {
   completedAt: Date;
 
   @Prop([{ type: MongooseSchema.Types.ObjectId, ref: 'Task' }])
-  dependencies: string[];
+  dependencies: Types.ObjectId[];
 
   @Prop()
   estimatedHours: number;

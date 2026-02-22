@@ -134,7 +134,7 @@ export class TasksService {
   async getMyTasks(userId: string): Promise<Task[]> {
     return this.taskModel
       .find({
-        assignedTo: new Types.ObjectId(userId).toString(), // 🔥 filter by logged user
+        assignedTo: new Types.ObjectId(userId), // 🔥 filter by logged user
       })
       .populate('project', 'name')
       .populate('assignedTo', 'name email')
