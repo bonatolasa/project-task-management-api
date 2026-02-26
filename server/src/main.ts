@@ -1,17 +1,20 @@
+// src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  // Enable CORS
+
+  // Parse CORS_ORIGIN: allow comma-separated list (e.g., "http://a.com,http://b.com")
+  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3001';
+  const origins = corsOrigin.split(',').map(origin => origin.trim());
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: origins,  // Now an array of allowed origins
     credentials: true,
   });
-  
-  // Global validation pipe
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -19,10 +22,9 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-  
-  // Set global prefix
+
   app.setGlobalPrefix('api');
-  
+
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 Server running on http://localhost:${port}`);
