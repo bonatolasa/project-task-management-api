@@ -15,6 +15,11 @@ export class ReportsService {
     @InjectModel(Team.name) private teamModel: Model<Team>,
   ) {}
 
+  // Helper to round numbers to two decimals
+  private round(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
   async getDashboardStats() {
     const [
       totalProjects,
@@ -42,6 +47,8 @@ export class ReportsService {
       }),
     ]);
 
+    const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
     return {
       totalProjects,
       totalTasks,
@@ -51,24 +58,25 @@ export class ReportsService {
       completedTasks,
       overdueTasks,
       overdueProjects,
-      taskCompletionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
+      taskCompletionRate: this.round(taskCompletionRate),
     };
   }
 
   async getProjectPerformance(projectId: string) {
     const tasks = await this.taskModel.find({ project: projectId }).exec();
-    
+
     const total = tasks.length;
     const completed = tasks.filter(t => t.status === 'completed').length;
     const inProgress = tasks.filter(t => t.status === 'in_progress').length;
     const pending = tasks.filter(t => t.status === 'pending').length;
-    const overdue = tasks.filter(t => 
+    const overdue = tasks.filter(t =>
       t.deadline < new Date() && t.status !== 'completed'
     ).length;
-    
-    const averageProgress = total > 0 
+
+    const averageProgress = total > 0
       ? tasks.reduce((sum, t) => sum + t.percentageComplete, 0) / total
       : 0;
+    const completionRate = total > 0 ? (completed / total) * 100 : 0;
 
     return {
       total,
@@ -76,22 +84,22 @@ export class ReportsService {
       inProgress,
       pending,
       overdue,
-      averageProgress,
-      completionRate: total > 0 ? (completed / total) * 100 : 0,
+      averageProgress: this.round(averageProgress),
+      completionRate: this.round(completionRate),
     };
   }
 
   async getUserPerformance(userId: string) {
     const tasks = await this.taskModel.find({ assignedTo: userId }).exec();
-    
+
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(t => t.status === 'completed').length;
     const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
     const pendingTasks = tasks.filter(t => t.status === 'pending').length;
-    const overdueTasks = tasks.filter(t => 
+    const overdueTasks = tasks.filter(t =>
       t.deadline < new Date() && t.status !== 'completed'
     ).length;
-    
+
     const averageCompletionTime = this.calculateAverageCompletionTime(tasks);
     const efficiencyScore = this.calculateEfficiencyScore(tasks);
 
@@ -101,47 +109,47 @@ export class ReportsService {
       inProgressTasks,
       pendingTasks,
       overdueTasks,
-      completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
-      averageCompletionTime,
-      efficiencyScore,
+      completionRate: this.round(totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0),
+      averageCompletionTime: this.round(averageCompletionTime),
+      efficiencyScore: this.round(efficiencyScore),
     };
   }
 
   async getTeamPerformance(teamId: string) {
     const team = await this.teamModel.findById(teamId).populate('members').exec();
-    
+
     if (!team) {
       throw new BadRequestException('Team not found');
     }
     const projects = await this.projectModel.find({ team: teamId }).exec();
-    
+
     const projectIds: Types.ObjectId[] = projects.map(
-       p => new Types.ObjectId(p._id)
+      p => new Types.ObjectId(p._id)
     );
     const tasks = await this.taskModel.find({ project: { $in: projectIds } }).exec();
-    
+
     const totalProjects = projects.length;
     const completedProjects = projects.filter(p => p.status === 'completed').length;
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(t => t.status === 'completed').length;
-    const overdueTasks = tasks.filter(t => 
+    const overdueTasks = tasks.filter(t =>
       t.deadline < new Date() && t.status !== 'completed'
     ).length;
-    
+
     const memberStats = await Promise.all(
       team.members.map(async (member: any) => {
-        const userTasks = tasks.filter(t => 
-         t.assignedTo?.equals(member._id)
+        const userTasks = tasks.filter(t =>
+          t.assignedTo?.equals(member._id)
         );
-        
+
         const completedUserTasks = userTasks.filter(t => t.status === 'completed').length;
-        
+
         return {
           userId: member._id,
           userName: member.name,
           totalTasks: userTasks.length,
           completedTasks: completedUserTasks,
-          completionRate: userTasks.length > 0 ? (completedUserTasks / userTasks.length) * 100 : 0,
+          completionRate: this.round(userTasks.length > 0 ? (completedUserTasks / userTasks.length) * 100 : 0),
         };
       })
     );
@@ -150,18 +158,18 @@ export class ReportsService {
       teamName: team.name,
       totalProjects,
       completedProjects,
-      projectCompletionRate: totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 0,
+      projectCompletionRate: this.round(totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 0),
       totalTasks,
       completedTasks,
       overdueTasks,
-      taskCompletionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
+      taskCompletionRate: this.round(totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0),
       memberStats,
     };
   }
 
   async getTaskStatusDistribution() {
     const tasks = await this.taskModel.find().exec();
-    
+
     const distribution = {
       pending: 0,
       in_progress: 0,
@@ -169,17 +177,17 @@ export class ReportsService {
       completed: 0,
       blocked: 0,
     };
-    
+
     tasks.forEach(task => {
       distribution[task.status]++;
     });
-    
+
     return distribution;
   }
 
   async getProjectStatusDistribution() {
     const projects = await this.projectModel.find().exec();
-    
+
     const distribution = {
       planning: 0,
       in_progress: 0,
@@ -187,11 +195,11 @@ export class ReportsService {
       completed: 0,
       cancelled: 0,
     };
-    
+
     projects.forEach(project => {
       distribution[project.status]++;
     });
-    
+
     return distribution;
   }
 
@@ -200,19 +208,19 @@ export class ReportsService {
     const projects = await this.projectModel.find({ team: teamId }).exec();
 
     if (!team) {
-     throw new BadRequestException(`Team with ID ${teamId} not found`);
+      throw new BadRequestException(`Team with ID ${teamId} not found`);
     }
-    
-    const projectIds:Types.ObjectId[] = projects.map(p => new Types.ObjectId(p._id));
+
+    const projectIds: Types.ObjectId[] = projects.map(p => new Types.ObjectId(p._id));
     const tasks = await this.taskModel.find({ project: { $in: projectIds } }).exec();
-    
+
     const workloadByMember = {};
-    
+
     team.members.forEach((member: any) => {
-      const memberTasks = tasks.filter(t => 
+      const memberTasks = tasks.filter(t =>
         t.assignedTo && t.assignedTo?.equals(member._id)
       );
-      
+
       workloadByMember[member._id.toString()] = {
         userId: member._id,
         userName: member.name,
@@ -220,12 +228,12 @@ export class ReportsService {
         pendingTasks: memberTasks.filter(t => t.status === 'pending').length,
         inProgressTasks: memberTasks.filter(t => t.status === 'in_progress').length,
         completedTasks: memberTasks.filter(t => t.status === 'completed').length,
-        overdueTasks: memberTasks.filter(t => 
+        overdueTasks: memberTasks.filter(t =>
           t.deadline < new Date() && t.status !== 'completed'
         ).length,
       };
     });
-    
+
     return {
       teamName: team.name,
       totalProjects: projects.length,
@@ -238,7 +246,7 @@ export class ReportsService {
     const tasks = await this.taskModel.find({
       createdAt: { $gte: startDate, $lte: endDate },
     }).populate('assignedTo', 'name email').exec();
-    
+
     const report = {
       totalTasks: tasks.length,
       completedTasks: tasks.filter(t => t.status === 'completed').length,
@@ -246,12 +254,12 @@ export class ReportsService {
       totalActualHours: tasks.reduce((sum, t) => sum + (t.actualHours || 0), 0),
       tasksByUser: {},
     };
-    
+
     tasks.forEach(task => {
       if (task.assignedTo) {
         const userId = (task.assignedTo as any)._id.toString();
         const userName = (task.assignedTo as any).name;
-        
+
         if (!report.tasksByUser[userId]) {
           report.tasksByUser[userId] = {
             userId,
@@ -262,7 +270,7 @@ export class ReportsService {
             actualHours: 0,
           };
         }
-        
+
         report.tasksByUser[userId].totalTasks++;
         if (task.status === 'completed') {
           report.tasksByUser[userId].completedTasks++;
@@ -271,30 +279,39 @@ export class ReportsService {
         report.tasksByUser[userId].actualHours += task.actualHours || 0;
       }
     });
-    
+
+    // Optionally round hours to two decimals for consistency
+    report.totalEstimatedHours = this.round(report.totalEstimatedHours);
+    report.totalActualHours = this.round(report.totalActualHours);
+    Object.values(report.tasksByUser).forEach((user: any) => {
+      user.estimatedHours = this.round(user.estimatedHours);
+      user.actualHours = this.round(user.actualHours);
+    });
+
     return report;
   }
 
   private calculateAverageCompletionTime(tasks: any[]): number {
     const completedTasks = tasks.filter(t => t.completedAt && t.startedAt);
     if (completedTasks.length === 0) return 0;
-    
+
     const totalTime = completedTasks.reduce((sum, task) => {
       const completionTime = task.completedAt.getTime() - task.startedAt.getTime();
       return sum + completionTime;
     }, 0);
-    
-    return totalTime / completedTasks.length / (1000 * 60 * 60 * 24); // Convert to days
+
+    // Convert to days
+    return totalTime / completedTasks.length / (1000 * 60 * 60 * 24);
   }
 
   private calculateEfficiencyScore(tasks: any[]): number {
     if (tasks.length === 0) return 0;
-    
+
     const onTimeTasks = tasks.filter(task => {
       if (task.status !== 'completed' || !task.completedAt) return false;
       return task.completedAt <= task.deadline;
     }).length;
-    
+
     return (onTimeTasks / tasks.length) * 100;
   }
 }
