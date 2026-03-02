@@ -1,5 +1,5 @@
-import { 
-  Controller, Get, Post, Body, Patch, Param, Delete,UseGuards, Query 
+import {
+  Controller, Get, Post, Body, Patch, Param, Delete, UseGuards
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -8,18 +8,24 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/enums/role.enum';
 import { CreateProjectDto, UpdateProjectDto } from '../dtos/project.dto';
 import { ProjectListResponseDto, SingleProjectResponseDto } from '../responses/project.response';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 
 // @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(private readonly projectsService: ProjectsService) { }
 
   @Roles(Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Post()
-  async create(@Body() createProjectDto: CreateProjectDto): Promise<SingleProjectResponseDto> {
+  async create(
+    @Body() createProjectDto: CreateProjectDto,
+    @CurrentUser() user: { id: string },
+  ): Promise<SingleProjectResponseDto> {
+    createProjectDto.manager = createProjectDto.manager || user.id;
+    createProjectDto.startDate = createProjectDto.startDate || new Date();
     const project = await this.projectsService.create(createProjectDto);
     return {
       success: true,
@@ -46,7 +52,7 @@ export class ProjectsController {
   @JwtAuthGuard()
   @Patch(':id')
   async update(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto
   ): Promise<SingleProjectResponseDto> {
     const project = await this.projectsService.update(id, updateProjectDto);
@@ -57,7 +63,7 @@ export class ProjectsController {
     };
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Delete(':id')
@@ -78,7 +84,7 @@ export class ProjectsController {
     };
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('manager/:managerId')
@@ -91,7 +97,7 @@ export class ProjectsController {
     };
   }
 
-  @Roles(Role.ADMIN,Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('contributor/:userId')
@@ -104,7 +110,7 @@ export class ProjectsController {
     };
   }
 
-  @Roles(Role.ADMIN,Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Post(':projectId/contributors/:userId')

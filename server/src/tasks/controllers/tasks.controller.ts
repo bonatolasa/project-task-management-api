@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param,Delete,UseGuards,Query, Req 
+import { Controller, Get, Post, Body, Patch, Param,Delete,UseGuards,Query, Put 
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -39,7 +39,11 @@ export class TasksController {
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Post()
-  async create(@Body() createTaskDto: CreateTaskDto): Promise<SingleTaskResponseDto> {
+  async create(
+    @Body() createTaskDto: CreateTaskDto,
+    @CurrentUser() user: { id: string },
+  ): Promise<SingleTaskResponseDto> {
+    createTaskDto.createdBy = createTaskDto.createdBy || user.id;
     const task = await this.tasksService.create(createTaskDto);
     return {
       success: true,
@@ -94,6 +98,22 @@ export class TasksController {
   async update(
     @Param('id') id: string, 
     @Body() updateTaskDto: UpdateTaskDto
+  ): Promise<SingleTaskResponseDto> {
+    const task = await this.tasksService.update(id, updateTaskDto);
+    return {
+      success: true,
+      data: task,
+      message: 'Task updated successfully',
+    };
+  }
+
+  @Roles(Role.MANAGER, Role.MEMBER)
+  @UseGuards(RolesGuard)
+  @JwtAuthGuard()
+  @Put(':id')
+  async updateViaPut(
+    @Param('id') id: string,
+    @Body() updateTaskDto: UpdateTaskDto,
   ): Promise<SingleTaskResponseDto> {
     const task = await this.tasksService.update(id, updateTaskDto);
     return {
