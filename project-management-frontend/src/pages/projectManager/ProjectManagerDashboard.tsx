@@ -66,7 +66,8 @@ const ProjectManagerDashboard: React.FC = () => {
 
                 // Fetch team performance if user has a team
                 try {
-                    const teamRes = await getTeamPerformance(user.id);
+                    if (!user.team) throw new Error('No team assigned');
+                    const teamRes = await getTeamPerformance(user.team);
                     const tData = teamRes.data || teamRes;
                     setTeamPerf(tData);
                 } catch { /* team performance may not be available */ }

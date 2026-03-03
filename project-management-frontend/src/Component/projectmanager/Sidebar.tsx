@@ -7,6 +7,7 @@ import {
     FolderKanban,
     ListTodo,
     BarChart3,
+    Activity,
     Settings,
     LogOut,
     ChevronLeft,
@@ -23,6 +24,7 @@ const navItems = [
     { to: '/manager/projects', icon: FolderKanban, label: 'Projects' },
     { to: '/manager/tasks', icon: ListTodo, label: 'Tasks' },
     { to: '/manager/reports', icon: BarChart3, label: 'Reports' },
+    { to: '/manager/activities', icon: Activity, label: 'Activities' },
     { to: '/manager/settings', icon: Settings, label: 'Settings' },
 ];
 

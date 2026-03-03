@@ -7,7 +7,6 @@ import {
     ListTodo,
     BarChart3,
     User,
-    Settings,
     LogOut,
     ChevronLeft,
     ChevronRight,
@@ -23,7 +22,6 @@ const navItems = [
     { to: '/dashboard/tasks', icon: ListTodo, label: 'My Tasks' },
     { to: '/dashboard/progress', icon: BarChart3, label: 'Progress' },
     { to: '/dashboard/profile', icon: User, label: 'Profile' },
-    { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];
 
 export const MemberSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {

@@ -3,8 +3,7 @@ import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
 import api from '../../services/api';
 import { getManagerProjects } from '../../services/dashboardService';
-import { Plus, Search, Edit2, Trash2, FolderKanban, Clock, Users } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Plus, Search, Trash2, Clock, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Project {
@@ -17,14 +16,29 @@ interface Project {
     team?: { _id: string; name: string };
 }
 
+interface TeamOption {
+    _id?: string;
+    id?: string;
+    name: string;
+}
+
+type ProjectStatus = 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+
 const Projects: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth.user);
-    const navigate = useNavigate();
     const [projects, setProjects] = useState<Project[]>([]);
+    const [teams, setTeams] = useState<TeamOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showCreate, setShowCreate] = useState(false);
-    const [form, setForm] = useState({ name: '', description: '', status: 'planning', deadline: '' });
+    const [form, setForm] = useState({
+        name: '',
+        description: '',
+        status: 'planning' as ProjectStatus,
+        team: '',
+        startDate: new Date().toISOString().slice(0, 10),
+        deadline: '',
+    });
 
     const fetchProjects = async () => {
         if (!user?.id) return;
@@ -38,13 +52,48 @@ const Projects: React.FC = () => {
 
     useEffect(() => { fetchProjects(); }, [user?.id]);
 
+    useEffect(() => {
+        const fetchTeams = async () => {
+            if (!user?.id) return;
+            try {
+                const res = await api.get(`/teams/manager/${user.id}`);
+                const data = res.data?.data || [];
+                setTeams(Array.isArray(data) ? data : []);
+            } catch {
+                setTeams([]);
+            }
+        };
+
+        fetchTeams();
+    }, [user?.id]);
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user?.id) {
+            toast.error('Manager account not found');
+            return;
+        }
+
         try {
-            await api.post('/projects', form);
+            await api.post('/projects', {
+                name: form.name.trim(),
+                description: form.description.trim() || undefined,
+                team: form.team,
+                manager: user.id,
+                startDate: new Date(form.startDate).toISOString(),
+                deadline: new Date(form.deadline).toISOString(),
+                status: form.status,
+            });
             toast.success('Project created!');
             setShowCreate(false);
-            setForm({ name: '', description: '', status: 'planning', deadline: '' });
+            setForm({
+                name: '',
+                description: '',
+                status: 'planning',
+                team: '',
+                startDate: new Date().toISOString().slice(0, 10),
+                deadline: '',
+            });
             fetchProjects();
         } catch (err: any) { toast.error(err.response?.data?.message || 'Failed to create'); }
     };
@@ -60,7 +109,7 @@ const Projects: React.FC = () => {
 
     const filtered = projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
     const getStatusColor = (s: string) => {
-        const m: Record<string, string> = { completed: '#10b981', 'in-progress': '#3b82f6', active: '#3b82f6', planning: '#8b5cf6', 'on-hold': '#f59e0b' };
+        const m: Record<string, string> = { completed: '#10b981', in_progress: '#3b82f6', planning: '#8b5cf6', on_hold: '#f59e0b', cancelled: '#ef4444' };
         return m[s?.toLowerCase()] || '#6b7280';
     };
     const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -88,13 +137,26 @@ const Projects: React.FC = () => {
                         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="Project name" style={inputStyle} />
                             <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+                            <select value={form.team} onChange={e => setForm({ ...form, team: e.target.value })} required style={inputStyle}>
+                                <option value="">Select team</option>
+                                {teams.map((team) => (
+                                    <option key={team._id || team.id} value={team._id || team.id}>
+                                        {team.name}
+                                    </option>
+                                ))}
+                            </select>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={inputStyle}>
+                                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as ProjectStatus })} style={inputStyle}>
                                     <option value="planning">Planning</option>
-                                    <option value="active">Active</option>
-                                    <option value="in-progress">In Progress</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="on_hold">On Hold</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
                                 </select>
-                                <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} style={inputStyle} />
+                                <input type="date" required value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} style={inputStyle} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <input type="date" required value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} style={inputStyle} />
                             </div>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                                 <button type="button" onClick={() => setShowCreate(false)} style={{ ...btnPrimary, background: '#f3f4f6', color: '#374151' }}>Cancel</button>

@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { type RootState } from '../../store/store';
 import { getMyTasks } from '../../services/dashboardService';
 import api from '../../services/api';
 import { Search, ListTodo, Clock, CheckCircle2 } from 'lucide-react';
@@ -14,11 +12,11 @@ interface Task {
     priority: string;
     deadline: string;
     progress?: number;
+    percentageComplete?: number;
     project?: { _id: string; name: string };
 }
 
 const Tasks: React.FC = () => {
-    const user = useSelector((state: RootState) => state.auth.user);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -41,6 +39,22 @@ const Tasks: React.FC = () => {
             toast.success('Status updated!');
             fetchTasks();
         } catch { toast.error('Failed to update'); }
+    };
+
+    const handleProgressChange = async (id: string, percentageComplete: number) => {
+        try {
+            await api.patch(`/tasks/${id}/progress`, { percentageComplete });
+            toast.success('Progress updated!');
+            setTasks((prev) =>
+                prev.map((task) =>
+                    task._id === id
+                        ? { ...task, percentageComplete, progress: percentageComplete }
+                        : task,
+                ),
+            );
+        } catch {
+            toast.error('Failed to update progress');
+        }
     };
 
     const filtered = tasks.filter(t => {
@@ -70,8 +84,8 @@ const Tasks: React.FC = () => {
                 </div>
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 14, background: '#fff' }}>
                     <option value="all">All</option>
-                    <option value="todo">To Do</option>
-                    <option value="in-progress">In Progress</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
                     <option value="completed">Completed</option>
                 </select>
             </div>
@@ -97,7 +111,7 @@ const Tasks: React.FC = () => {
                                 onMouseLeave={e => (e.currentTarget.style.transform = 'translateX(0)')}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <button onClick={() => handleStatusChange(t._id, t.status === 'completed' ? 'todo' : 'completed')}
+                                        <button onClick={() => handleStatusChange(t._id, t.status === 'completed' ? 'pending' : 'completed')}
                                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
                                             <CheckCircle2 size={20} color={t.status === 'completed' ? '#10b981' : '#d1d5db'} fill={t.status === 'completed' ? '#d1fae5' : 'none'} />
                                         </button>
@@ -107,18 +121,26 @@ const Tasks: React.FC = () => {
                                         <span style={{ background: getPriorityStyle(t.priority).bg, color: getPriorityStyle(t.priority).color, padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>{t.priority}</span>
                                         <select value={t.status} onChange={e => handleStatusChange(t._id, e.target.value)}
                                             style={{ padding: '2px 8px', borderRadius: 6, border: 'none', fontSize: 10, fontWeight: 600, color: '#fff', background: getStatusColor(t.status), cursor: 'pointer' }}>
-                                            <option value="todo">To Do</option>
-                                            <option value="in-progress">In Progress</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="in_progress">In Progress</option>
                                             <option value="completed">Completed</option>
                                         </select>
                                     </div>
                                 </div>
-                                {t.progress !== undefined && (
+                                {(t.percentageComplete !== undefined || t.progress !== undefined) && (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                                         <div style={{ flex: 1, height: 5, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
-                                            <div style={{ width: `${t.progress}%`, height: '100%', borderRadius: 3, background: '#334155' }} />
+                                            <div style={{ width: `${t.percentageComplete ?? t.progress ?? 0}%`, height: '100%', borderRadius: 3, background: '#334155' }} />
                                         </div>
-                                        <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 600 }}>{t.progress}%</span>
+                                        <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 600 }}>{t.percentageComplete ?? t.progress ?? 0}%</span>
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={100}
+                                            step={5}
+                                            value={t.percentageComplete ?? t.progress ?? 0}
+                                            onChange={(e) => handleProgressChange(t._id, Number(e.target.value))}
+                                        />
                                     </div>
                                 )}
                                 <div style={{ fontSize: 12, color: isOverdue ? '#ef4444' : '#9ca3af', display: 'flex', gap: 12 }}>

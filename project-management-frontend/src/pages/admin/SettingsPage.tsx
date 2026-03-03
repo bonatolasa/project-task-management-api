@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../../store/store';
 import { logout } from '../../store/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { Settings, LogOut, Shield, Globe, Bell } from 'lucide-react';
+import { setApiBaseUrl, getApiBaseUrl } from '../../services/api';
 
 const SettingsPage: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth.user);
     const dispatch = useDispatch();
     const navigate = useNavigate();
+
+    // API endpoint selection
+    const ENV_LOCAL = import.meta.env.VITE_API_LOCAL || 'http://localhost:3000/api';
+    const ENV_DEPLOYED = import.meta.env.VITE_API_DEPLOYED || import.meta.env.VITE_API_URL || '';
+    const [currentUrl, setCurrentUrl] = useState(getApiBaseUrl());
+
 
     const handleLogout = () => {
         dispatch(logout());
@@ -51,6 +58,29 @@ const SettingsPage: React.FC = () => {
                         </label>
                     ))}
                 </div>
+            </div>
+
+            {/* API Endpoint */}
+            <div style={cardStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                    <Globe size={20} color="#10b981" />
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>API Endpoint</h2>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <select
+                        value={currentUrl}
+                        onChange={e => {
+                            const newUrl = e.target.value;
+                            setCurrentUrl(newUrl);
+                            setApiBaseUrl(newUrl);
+                        }}
+                        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer' }}
+                    >
+                        <option value={ENV_LOCAL}>Local ({ENV_LOCAL})</option>
+                        {ENV_DEPLOYED && <option value={ENV_DEPLOYED}>Deployed</option>}
+                    </select>
+                </div>
+                <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>Current base URL: {currentUrl}</p>
             </div>
 
             {/* Security */}

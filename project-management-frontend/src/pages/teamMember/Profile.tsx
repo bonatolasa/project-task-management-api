@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../../store/store';
 import { logout } from '../../store/authSlice';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { profileApi } from '../../services/api';
 import { User, Mail, Shield, Save, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -13,20 +13,26 @@ const Profile: React.FC = () => {
     const navigate = useNavigate();
     const [name, setName] = useState(user?.name || '');
     const [email, setEmail] = useState(user?.email || '');
+    const [currentPassword, setCurrentPassword] = useState('');
     const [saving, setSaving] = useState(false);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!currentPassword) {
+            toast.error('Please enter your current password to confirm changes');
+            return;
+        }
         setSaving(true);
         try {
-            await api.put(`/users/${user?.id}`, { name, email });
-            // Update localStorage
+            await profileApi.confirmPasswordAndUpdateProfile(currentPassword, { name, email });
+            // Update localStorage with new info
             const stored = localStorage.getItem('user');
             if (stored) {
                 const parsed = JSON.parse(stored);
                 localStorage.setItem('user', JSON.stringify({ ...parsed, name, email }));
             }
             toast.success('Profile updated!');
+            setCurrentPassword('');
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to update');
         } finally { setSaving(false); }
@@ -68,6 +74,16 @@ const Profile: React.FC = () => {
                     <div>
                         <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Email Address</label>
                         <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Current Password</label>
+                        <input
+                            type="password"
+                            value={currentPassword}
+                            onChange={e => setCurrentPassword(e.target.value)}
+                            required
+                            style={inputStyle}
+                        />
                     </div>
                     <button type="submit" disabled={saving} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px',

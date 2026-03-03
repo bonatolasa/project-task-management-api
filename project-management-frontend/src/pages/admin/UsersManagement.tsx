@@ -21,26 +21,52 @@ const UsersManagement: React.FC = () => {
     const [editUser, setEditUser] = useState<UserData | null>(null);
     const [form, setForm] = useState({ name: '', email: '', password: '', role: 'member' });
 
-    const fetchUsers = async () => {
-        try {
-            const res = await api.get('/users');
-            const responseData = res.data;
-            let usersData = responseData.data || responseData.users || responseData;
-            if (!Array.isArray(usersData)) usersData = [];
+   const fetchUsers = async () => {
+  try {
+    const res = await api.get('/users');
+    console.log('API response:', res); // 👈 Check the network tab
+    const responseData = res.data;
 
-            // Normalize: ensure each user has an _id (if backend returns 'id', copy it)
-            const normalized = usersData.map((user: any) => ({
-                ...user,
-                _id: user._id || user.id,
-            }));
-            setUsers(normalized);
-        } catch (err) {
-            console.error(err);
-            toast.error('Failed to load users');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Extract array from response (backend returns { success, data, message })
+    let usersArray = [];
+    if (responseData.data && Array.isArray(responseData.data)) {
+      usersArray = responseData.data;
+    } else if (Array.isArray(responseData)) {
+      usersArray = responseData;
+    } else {
+      console.warn('Unexpected response structure:', responseData);
+      toast.error('Unexpected server response');
+      setUsers([]);
+      return;
+    }
+
+    const normalized = usersArray.map((user: any) => ({
+      ...user,
+      _id: user._id || user.id,
+    }));
+    setUsers(normalized);
+  } catch (err: any) {
+    console.error('Fetch error:', err);
+    // Show specific message based on status
+    if (err.response) {
+      const status = err.response.status;
+      const message = err.response.data?.message || err.message;
+      if (status === 401) {
+        toast.error('Authentication failed. Please log in again.');
+      } else if (status === 403) {
+        toast.error('You do not have permission to view users (admin only).');
+      } else {
+        toast.error(message || 'Failed to load users');
+      }
+    } else if (err.request) {
+      toast.error('No response from server. Check your network or backend.');
+    } else {
+      toast.error(err.message || 'Failed to load users');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
     useEffect(() => {
         fetchUsers();

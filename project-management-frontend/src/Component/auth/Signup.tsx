@@ -5,6 +5,7 @@ import type { AppDispatch, RootState } from '../../store/store';
 import { registerUser } from '../../store/authSlice';
 import toast from 'react-hot-toast';
 import { LayoutDashboard } from 'lucide-react';
+import { normalizeRole } from '../../utils/auth';
 
 export const Signup: React.FC = () => {
     const [name, setName] = useState('');
@@ -31,7 +32,10 @@ export const Signup: React.FC = () => {
 
         if (registerUser.fulfilled.match(resultAction)) {
             toast.success('Registration successful!');
-            navigate('/dashboard');
+            const role = normalizeRole(resultAction.payload.data.user.role);
+            if (role === 'admin') navigate('/admin');
+            else if (role === 'manager') navigate('/manager');
+            else navigate('/dashboard');
         } else {
             const errorMsg = (resultAction.payload as string) || 'Registration failed';
             toast.error(errorMsg);

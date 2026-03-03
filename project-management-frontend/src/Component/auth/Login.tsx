@@ -6,6 +6,7 @@ import { type AppDispatch } from '../../store/store';
 import { login } from '../../store/authSlice';
 import toast from 'react-hot-toast';
 import { LayoutDashboard } from 'lucide-react';
+import { normalizeRole } from '../../utils/auth';
 
 export const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ export const Login: React.FC = () => {
 
         if (login.fulfilled.match(resultAction)) {
             toast.success('Successfully logged in!');
-            const role = resultAction.payload.data.user.role;
+            const role = normalizeRole(resultAction.payload.data.user.role);
             if (role === 'admin') navigate('/admin');
             else if (role === 'manager') navigate('/manager');
             else navigate('/dashboard');
@@ -42,7 +43,7 @@ export const Login: React.FC = () => {
                     <p className="mt-2 text-sm text-text-muted">
                         Or{' '}
                         <Link to="/signup" className="font-medium text-primary hover:text-primary-light">
-                            start your 14-day free trial
+                            start your trial
                         </Link>
                     </p>
                 </div>

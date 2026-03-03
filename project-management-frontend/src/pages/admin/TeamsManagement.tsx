@@ -21,14 +21,18 @@ interface Team {
 
 const TeamsManagement: React.FC = () => {
     const [teams, setTeams] = useState<Team[]>([]);
-    const [users, setUsers] = useState<User[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showCreate, setShowCreate] = useState(false);
     const [editTeam, setEditTeam] = useState<Team | null>(null);
-    const [form, setForm] = useState({ name: '', description: '', manager: '' });
+    const [form, setForm] = useState({
+        name: '',
+        description: '',
+        manager: '',
+        members: [] as string[]
+    });
 
-    // Helper to extract array from API response
     const extractArray = (responseData: any): any[] => {
         if (responseData.data && Array.isArray(responseData.data)) return responseData.data;
         if (responseData.users && Array.isArray(responseData.users)) return responseData.users;
@@ -44,7 +48,6 @@ const TeamsManagement: React.FC = () => {
                 api.get('/users')
             ]);
 
-            // Extract and normalize teams
             const teamsArray = extractArray(teamsRes.data);
             const normalizedTeams = teamsArray.map((t: any) => ({
                 ...t,
@@ -53,17 +56,12 @@ const TeamsManagement: React.FC = () => {
             }));
             setTeams(normalizedTeams);
 
-            // Extract and normalize users
             const usersArray = extractArray(usersRes.data);
             const normalizedUsers = usersArray.map((u: any) => ({
                 ...u,
                 _id: u._id || u.id
             }));
-            // Filter to only admins and managers for the dropdown
-            const eligibleManagers = normalizedUsers.filter(
-                (u: User) => u.role === 'admin' || u.role === 'manager'
-            );
-            setUsers(eligibleManagers);
+            setAllUsers(normalizedUsers);
         } catch (err) {
             console.error(err);
             toast.error('Failed to load data');
@@ -77,10 +75,10 @@ const TeamsManagement: React.FC = () => {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/teams/create', form); // ✅ corrected endpoint
+            await api.post('/teams/create', form);
             toast.success('Team created!');
             setShowCreate(false);
-            setForm({ name: '', description: '', manager: '' });
+            setForm({ name: '', description: '', manager: '', members: [] });
             fetchData();
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to create team');
@@ -94,7 +92,7 @@ const TeamsManagement: React.FC = () => {
             return;
         }
         try {
-            await api.patch(`/teams/${editTeam._id}`, form); // ✅ corrected method
+            await api.patch(`/teams/${editTeam._id}`, form);
             toast.success('Team updated!');
             setEditTeam(null);
             fetchData();
@@ -120,9 +118,15 @@ const TeamsManagement: React.FC = () => {
         setForm({
             name: team.name,
             description: team.description || '',
-            manager: team.manager?._id || ''
+            manager: team.manager?._id || '',
+            members: team.members?.map(m => m._id) || []
         });
     };
+
+    // Filter users for manager dropdown: only 'manager' role
+    const eligibleManagers = allUsers.filter(u => u.role === 'manager');
+    // Filter users for member checkboxes: only 'member' role
+    const eligibleMembers = allUsers.filter(u => u.role === 'member');
 
     const filtered = teams.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -145,6 +149,15 @@ const TeamsManagement: React.FC = () => {
         cursor: 'pointer'
     };
 
+    const handleMemberToggle = (userId: string) => {
+        setForm(prev => ({
+            ...prev,
+            members: prev.members.includes(userId)
+                ? prev.members.filter(id => id !== userId)
+                : [...prev.members, userId]
+        }));
+    };
+
     return (
         <div>
             {/* Header */}
@@ -153,7 +166,7 @@ const TeamsManagement: React.FC = () => {
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>Teams</h1>
                     <p style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>{teams.length} teams</p>
                 </div>
-                <button onClick={() => { setShowCreate(true); setEditTeam(null); setForm({ name: '', description: '', manager: '' }); }} style={btnPrimary}>
+                <button onClick={() => { setShowCreate(true); setEditTeam(null); setForm({ name: '', description: '', manager: '', members: [] }); }} style={btnPrimary}>
                     <Plus size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} /> New Team
                 </button>
             </div>
@@ -182,12 +195,34 @@ const TeamsManagement: React.FC = () => {
                                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Manager</label>
                                 <select value={form.manager} onChange={e => setForm({ ...form, manager: e.target.value })} style={inputStyle} required>
                                     <option value="">Select a manager</option>
-                                    {users.map(user => (
+                                    {eligibleManagers.map(user => (
                                         <option key={user._id} value={user._id}>
                                             {user.name} ({user.role})
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Members</label>
+                                <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px', maxHeight: 200, overflowY: 'auto' }}>
+                                    {eligibleMembers.length === 0 ? (
+                                        <p style={{ color: '#9ca3af', fontSize: 14, margin: 0 }}>No members available</p>
+                                    ) : (
+                                        eligibleMembers.map(user => (
+                                            <label key={user._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={form.members.includes(user._id)}
+                                                    onChange={() => handleMemberToggle(user._id)}
+                                                />
+                                                <span style={{ fontSize: 14, color: '#374151' }}>
+                                                    {user.name} ({user.email})
+                                                </span>
+                                            </label>
+                                        ))
+                                    )}
+                                </div>
+                                <small style={{ color: '#6b7280', fontSize: 12 }}>Select members by checking the boxes</small>
                             </div>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
                                 <button type="button" onClick={() => { setShowCreate(false); setEditTeam(null); }} style={{ ...btnPrimary, background: '#f3f4f6', color: '#374151' }}>Cancel</button>
@@ -198,7 +233,7 @@ const TeamsManagement: React.FC = () => {
                 </div>
             )}
 
-            {/* Team Cards */}
+            {/* Team Cards (unchanged) */}
             {loading ? (
                 <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>Loading...</div>
             ) : filtered.length === 0 ? (

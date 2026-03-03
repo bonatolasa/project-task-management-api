@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../services/authService';
 import type { User, LoginPayload, RegisterPayload, AuthResponse } from '../types/auth';
+import { normalizeRole } from '../utils/auth';
 
 interface AuthState {
     user: User | null;
@@ -13,7 +14,9 @@ interface AuthState {
 const getStoredUser = (): User | null => {
     try {
         const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
+        if (!userStr) return null;
+        const parsed = JSON.parse(userStr) as User;
+        return { ...parsed, role: normalizeRole(parsed.role) };
     } catch {
         return null;
     }
@@ -33,9 +36,16 @@ export const login = createAsyncThunk<AuthResponse, LoginPayload, { rejectValue:
         try {
             const response = await authService.login(credentials);
             if (response.success && response.data?.accessToken) {
+                const normalizedUser = {
+                    ...response.data.user,
+                    role: normalizeRole(response.data.user?.role),
+                };
                 localStorage.setItem('accessToken', response.data.accessToken);
-                localStorage.setItem('user', JSON.stringify(response.data.user));
-                return response;
+                localStorage.setItem('user', JSON.stringify(normalizedUser));
+                return {
+                    ...response,
+                    data: { ...response.data, user: normalizedUser },
+                };
             }
             return rejectWithValue(response.message || 'Login failed');
         } catch (error: any) {
@@ -50,9 +60,16 @@ export const registerUser = createAsyncThunk<AuthResponse, RegisterPayload, { re
     try {
       const response = await authService.register(data);
       if (response.success && response.data?.accessToken) {
+        const normalizedUser = {
+          ...response.data.user,
+          role: normalizeRole(response.data.user?.role),
+        };
         localStorage.setItem('accessToken', response.data.accessToken);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        return response;
+        localStorage.setItem('user', JSON.stringify(normalizedUser));
+        return {
+          ...response,
+          data: { ...response.data, user: normalizedUser },
+        };
       }
       return rejectWithValue(response.message || 'Registration failed');
     } catch (error: any) {

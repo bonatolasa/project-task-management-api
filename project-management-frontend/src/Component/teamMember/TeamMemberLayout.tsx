@@ -3,7 +3,8 @@ import { Outlet } from 'react-router-dom';
 import { MemberSidebar } from './Sidebar';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { NotificationBell } from '../common/NotificationBell';
 
 export const TeamMemberLayout: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
@@ -62,10 +63,7 @@ export const TeamMemberLayout: React.FC = () => {
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                        <button style={{ position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 8, borderRadius: 8 }}>
-                            <Bell size={20} color="#6b7280" />
-                            <span style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} />
-                        </button>
+                        <NotificationBell accentColor="#334155" />
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div
                                 style={{

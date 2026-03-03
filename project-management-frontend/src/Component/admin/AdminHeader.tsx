@@ -1,7 +1,8 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { NotificationBell } from '../common/NotificationBell';
 
 export const AdminHeader: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth.user);
@@ -50,32 +51,7 @@ export const AdminHeader: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                <button
-                    style={{
-                        position: 'relative',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 8,
-                        borderRadius: 8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                >
-                    <Bell size={20} color="#6b7280" />
-                    <span
-                        style={{
-                            position: 'absolute',
-                            top: 4,
-                            right: 4,
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: '#ef4444',
-                        }}
-                    />
-                </button>
+                <NotificationBell accentColor="#194f87" />
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div

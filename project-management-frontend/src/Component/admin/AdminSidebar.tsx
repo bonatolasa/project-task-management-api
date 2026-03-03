@@ -8,6 +8,7 @@ import {
     Users,
     UsersRound,
     BarChart3,
+    Activity,
     Settings,
     LogOut,
     ChevronLeft,
@@ -25,6 +26,7 @@ const navItems = [
     { to: '/admin/users', icon: Users, label: 'Users' },
     { to: '/admin/teams', icon: UsersRound, label: 'Teams' },
     { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
+    { to: '/admin/activities', icon: Activity, label: 'Activities' },
     { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
