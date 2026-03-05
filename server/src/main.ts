@@ -2,6 +2,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './commons/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,10 +11,10 @@ async function bootstrap() {
   const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3001';
   const origins = corsOrigin.split(',').map(origin => origin.trim());
 
-  app.enableCors({
-    origin: origins,  // Now an array of allowed origins
-    credentials: true,
-  });
+app.enableCors({
+  origin: true,       // Echoes the request origin
+  credentials: true,
+});
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -22,6 +23,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   app.setGlobalPrefix('api');
 
