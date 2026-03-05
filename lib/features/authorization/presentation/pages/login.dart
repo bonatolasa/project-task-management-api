@@ -151,7 +151,7 @@ class _LoginPage extends State<LoginPage> {
                         child: ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.yellow,
+                            backgroundColor: Color(0xFF194F87),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -160,7 +160,7 @@ class _LoginPage extends State<LoginPage> {
                             "Login to PM",
                             style: TextStyle(
                               fontSize: 18,
-                              color: Colors.black,
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -190,7 +190,7 @@ class _LoginPage extends State<LoginPage> {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black12,
-                            side: BorderSide(color: Colors.yellow),
+                            side: BorderSide(color:  Color(0xFF194F87)),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -198,7 +198,7 @@ class _LoginPage extends State<LoginPage> {
                           child: Text(
                             "Sign Up",
                             style: TextStyle(
-                              color: Colors.yellow[600],
+                              color:  Color(0xFF194F87),
                               fontSize: 18,
                             ),
                           ),
