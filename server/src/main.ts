@@ -8,11 +8,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Parse CORS_ORIGIN: allow comma-separated list (e.g., "http://a.com,http://b.com")
-  // const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3001';
-  // const origins = corsOrigin.split(',').map(origin => origin.trim());
+  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3001';
+  const origins = corsOrigin.split(',').map(origin => origin.trim());
 
 app.enableCors({
-  origin: true,       // Echoes the request origin
+  origin: 'true',       // Echoes the request origin
   credentials: true,
 });
 
