@@ -11,10 +11,10 @@ async function bootstrap() {
   const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3001';
   const origins = corsOrigin.split(',').map(origin => origin.trim());
 
-app.enableCors({
-  origin: 'true',       // Echoes the request origin
-  credentials: true,
-});
+  app.enableCors({
+    origin: origins,  // Now an array of allowed origins
+    credentials: true,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
