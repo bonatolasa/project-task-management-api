@@ -19,6 +19,7 @@ const TeamProjects: React.FC = () => {
 
     const fetchProjects = async () => {
         try {
+            if (!user) return;
             const res = await api.get(`/projects/contributor/${user.id}`);
             const data = res.data || res;
             const projects = Array.isArray(data) ? data : data?.data || [];

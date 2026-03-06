@@ -1,16 +1,16 @@
 export class TaskProjectDto {
-  id: string;
+  _id: string;
   name: string;
 }
 
 export class TaskUserDto {
-  id: string;
+  _id: string;
   name: string;
   email: string;
 }
 
 export class TaskResponseDto {
-  id: string;
+  _id: string;
   title: string;
   description?: string;
   project?: TaskProjectDto;

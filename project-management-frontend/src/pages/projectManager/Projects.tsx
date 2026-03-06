@@ -24,6 +24,13 @@ interface TeamOption {
     name: string;
 }
 
+interface TeamMember {
+    _id?: string;
+    id?: string;
+    name: string;
+    email?: string;
+}
+
 type ProjectStatus = 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
 
 const Projects: React.FC = () => {
@@ -32,6 +39,7 @@ const Projects: React.FC = () => {
     const navigate = useNavigate();
     const [projects, setProjects] = useState<Project[]>([]);
     const [teams, setTeams] = useState<TeamOption[]>([]);
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showCreate, setShowCreate] = useState(false);
@@ -79,6 +87,24 @@ const Projects: React.FC = () => {
         };
         fetchTeams();
     }, [userId]);
+
+    useEffect(() => {
+        const fetchTeamMembers = async () => {
+            if (!form.team) {
+                setTeamMembers([]);
+                return;
+            }
+            try {
+                const res = await api.get(`/teams/${form.team}`);
+                const teamData = res.data?.data || res.data;
+                setTeamMembers(teamData?.members || []);
+            } catch (err) {
+                console.error('Failed to fetch team members:', err);
+                setTeamMembers([]);
+            }
+        };
+        fetchTeamMembers();
+    }, [form.team]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -151,17 +177,42 @@ const Projects: React.FC = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
                     <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: 480 }}>
                         <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 700 }}>New Project</h2>
+                        {teams.length === 0 && (
+                            <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+                                <p style={{ margin: 0, color: '#92400e', fontSize: 14 }}>
+                                    ⚠️ No teams are available. Please contact an administrator to create teams before creating projects.
+                                </p>
+                            </div>
+                        )}
                         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="Project name" style={inputStyle} />
                             <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
                             <select value={form.team} onChange={e => setForm({ ...form, team: e.target.value })} required style={inputStyle}>
                                 <option value="">Select team</option>
-                                {teams.map((team) => (
-                                    <option key={team._id || team.id} value={team._id || team.id}>
-                                        {team.name}
-                                    </option>
-                                ))}
+                                {teams.length === 0 ? (
+                                    <option disabled>No teams available</option>
+                                ) : (
+                                    teams.map((team) => (
+                                        <option key={team._id || team.id} value={team._id || team.id}>
+                                            {team.name}
+                                        </option>
+                                    ))
+                                )}
                             </select>
+                            {form.team && teamMembers.length > 0 && (
+                                <div style={{ marginTop: 8 }}>
+                                    <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                                        Team Members ({teamMembers.length}):
+                                    </label>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 100, overflowY: 'auto', padding: 8, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                                        {teamMembers.map((member) => (
+                                            <div key={member._id || member.id} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#fff', padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12 }}>
+                                                <span>{member.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                 <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as ProjectStatus })} style={inputStyle}>
                                     <option value="planning">Planning</option>
@@ -177,7 +228,9 @@ const Projects: React.FC = () => {
                             </div>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                                 <button type="button" onClick={() => setShowCreate(false)} style={{ ...btnPrimary, background: '#f3f4f6', color: '#374151' }}>Cancel</button>
-                                <button type="submit" style={btnPrimary}>Create</button>
+                                <button type="submit" disabled={teams.length === 0} style={{ ...btnPrimary, opacity: teams.length === 0 ? 0.5 : 1, cursor: teams.length === 0 ? 'not-allowed' : 'pointer' }}>
+                                    {teams.length === 0 ? 'No teams available' : 'Create'}
+                                </button>
                             </div>
                         </form>
                     </div>

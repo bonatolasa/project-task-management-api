@@ -362,20 +362,20 @@ export class TasksService {
 
   private async mapToResponseDto(task: Task): Promise<TaskResponseDto> {
     return {
-      id: task._id.toString(),
+      _id: task._id.toString(),
       title: task.title,
       description: task.description,
       project: task.project ? {
-        id: (task.project as any)._id.toString(),
+        _id: (task.project as any)._id.toString(),
         name: (task.project as any).name,
       } : undefined,
       assignedTo: task.assignedTo ? (task.assignedTo as any[]).map((a: any) => ({
-        id: a._id.toString(),
+        _id: a._id.toString(),
         name: a.name,
         email: a.email,
       })) : [],
       createdBy: task.createdBy ? {
-        id: (task.createdBy as any)._id.toString(),
+        _id: (task.createdBy as any)._id.toString(),
         name: (task.createdBy as any).name,
         email: (task.createdBy as any).email,
       } : undefined,

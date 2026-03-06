@@ -33,9 +33,9 @@ export class CommentsService {
 
     if (task.assignedTo && task.assignedTo.length > 0) {
       for (const assignee of task.assignedTo) {
-        if (assignee.id !== userId) {
+        if (assignee._id !== userId) {
           await this.notificationsService.create({
-            userId: assignee.id,
+            userId: assignee._id,
             title: 'New Comment',
             message: `New comment on task: ${task.title}`,
             type: 'task_comment_added',

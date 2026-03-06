@@ -129,7 +129,7 @@ export class TeamsController {
     };
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get(':id')
@@ -139,6 +139,19 @@ export class TeamsController {
       success: true,
       data: team,
       message: 'Team retrieved successfully',
+    };
+  }
+
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @UseGuards(RolesGuard)
+  @JwtAuthGuard()
+  @Get(':id/members')
+  async getTeamMembers(@Param('id') id: string): Promise<{ success: boolean; data: { _id: string; name: string; email: string; role: string }[]; message: string }> {
+    const members = await this.teamsService.getTeamMembers(id);
+    return {
+      success: true,
+      data: members,
+      message: 'Team members retrieved successfully',
     };
   }
 }

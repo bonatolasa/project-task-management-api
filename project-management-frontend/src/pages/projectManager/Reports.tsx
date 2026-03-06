@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
-import { getManagerProjects, getProjectPerformance, getTeamPerformance } from '../../services/dashboardService';
+import { getManagerProjects, getProjectPerformance } from '../../services/dashboardService';
 import { TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -10,7 +10,8 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
 const Reports: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth.user);
     const [barData, setBarData] = useState<any[]>([]);
-    const [teamPerf, setTeamPerf] = useState<any>(null);
+    // team performance currently unused
+    const [teamPerf] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

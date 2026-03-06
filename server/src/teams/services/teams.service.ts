@@ -144,6 +144,24 @@ export class TeamsService {
     return Promise.all(teams.map(team => this.mapToResponseDto(team)));
   }
 
+  async getTeamMembers(teamId: string): Promise<{ _id: string; name: string; email: string; role: string }[]> {
+    const team = await this.teamModel
+      .findById(teamId)
+      .populate('members', 'name email role')
+      .exec();
+
+    if (!team) {
+      throw new NotFoundException(`Team with ID ${teamId} not found`);
+    }
+
+    return team.members.map((member: any) => ({
+      _id: member._id.toString(),
+      name: member.name,
+      email: member.email,
+      role: member.role,
+    }));
+  }
+
   private async getTeamWithDetails(teamId: string): Promise<TeamResponseDto> {
     const team = await this.teamModel
       .findById(teamId)

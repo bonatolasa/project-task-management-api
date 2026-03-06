@@ -52,6 +52,7 @@ const Tasks: React.FC = () => {
     const [commentInput, setCommentInput] = useState('');
     const [projectMembers, setProjectMembers] = useState<MemberOption[]>([]);
     const [memberStatus, setMemberStatus] = useState<'loading' | 'no-team' | 'no-members' | 'loaded'>('loaded');
+    const [selectedTeam, setSelectedTeam] = useState<{ _id: string; name: string } | null>(null);
 
     // Robust user ID
     const userId = userAny?.id || userAny?._id;
@@ -94,6 +95,7 @@ const Tasks: React.FC = () => {
             if (!form.project) {
                 setProjectMembers([]);
                 setMemberStatus('loaded');
+                setSelectedTeam(null);
                 if (!editTask) {
                     setForm(prev => ({ ...prev, assignedTo: [] }));
                 }
@@ -103,18 +105,30 @@ const Tasks: React.FC = () => {
             try {
                 const res = await api.get(`/projects/${form.project}`);
                 const projectData = res.data?.data || res.data;
-                const teamId = projectData?.team?._id;
+                // project.team may be an object with either _id or id field, or a plain string
+                let teamId: string | undefined;
+                if (projectData?.team && typeof projectData.team === 'object') {
+                    teamId = projectData.team._id || projectData.team.id;
+                } else {
+                    teamId = projectData?.team;
+                }
                 if (!teamId) {
                     setProjectMembers([]);
                     setMemberStatus('no-team');
+                    setSelectedTeam(null);
                     if (!editTask) {
                         setForm(prev => ({ ...prev, assignedTo: [] }));
                     }
                     return;
                 }
+                // Fetch team name
                 const teamRes = await api.get(`/teams/${teamId}`);
                 const teamData = teamRes.data?.data || teamRes.data;
-                const members = teamData?.members || [];
+                setSelectedTeam({ _id: teamId, name: teamData?.name || 'Unknown Team' });
+                // Fetch team members
+                const membersRes = await api.get(`/teams/${teamId}/members`);
+                const membersData = membersRes.data?.data || membersRes.data;
+                const members = Array.isArray(membersData) ? membersData : [];
                 setProjectMembers(members);
                 setMemberStatus(members.length === 0 ? 'no-members' : 'loaded');
                 // Clear assignedTo when project changes to allow fresh selection (only when creating)
@@ -124,6 +138,7 @@ const Tasks: React.FC = () => {
             } catch {
                 setProjectMembers([]);
                 setMemberStatus('no-team');
+                setSelectedTeam(null);
                 if (!editTask) {
                     setForm(prev => ({ ...prev, assignedTo: [] }));
                 }
@@ -386,6 +401,11 @@ const Tasks: React.FC = () => {
                             </select>
                             {form.project && (
                                 <div style={{ marginTop: 8 }}>
+                                    {selectedTeam && (
+                                        <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 8 }}>
+                                            Project Team: <strong>{selectedTeam.name}</strong>
+                                        </div>
+                                    )}
                                     <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
                                         Assign to team members:
                                     </label>

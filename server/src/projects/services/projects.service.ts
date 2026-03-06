@@ -21,6 +21,13 @@ export class ProjectsService {
 
   //create project services
   async create(createProjectDto: CreateProjectDto): Promise<ProjectResponseDto> {
+    // Validate that the team exists
+    try {
+      await this.teamsService.findById(createProjectDto.team);
+    } catch (error) {
+      throw new BadRequestException('Invalid team ID. Team does not exist.');
+    }
+
     const createdProject = new this.projectModel(createProjectDto);
     const savedProject = await createdProject.save();
 
