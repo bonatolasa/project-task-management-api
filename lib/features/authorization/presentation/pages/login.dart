@@ -140,7 +140,7 @@ class _LoginPage extends State<LoginPage> {
                         child: Text(
                           'Forgot password?',
                           style: TextStyle(
-                            color: Colors.yellowAccent[700],
+                            color: const Color.fromARGB(255, 178, 198, 236),
                             fontSize: 12,
                           ),
                         ),
