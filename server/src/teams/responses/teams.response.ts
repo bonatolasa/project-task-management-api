@@ -9,7 +9,7 @@ export class TeamResponseDto {
   id: string;
   name: string;
   description?: string;
-  manager: TeamMemberDto;
+  manager?: TeamMemberDto;
   members: TeamMemberDto[];
   isActive: boolean;
 }

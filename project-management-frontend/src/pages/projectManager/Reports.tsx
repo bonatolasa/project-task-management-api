@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
 import { getManagerProjects, getProjectPerformance, getTeamPerformance } from '../../services/dashboardService';
-import { BarChart3, TrendingUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
@@ -20,11 +20,11 @@ const Reports: React.FC = () => {
                 const projRes = await getManagerProjects(user.id);
                 const projects = Array.isArray(projRes.data || projRes) ? (projRes.data || projRes) : (projRes.data || projRes)?.projects || [];
                 const perfs = await Promise.all(projects.slice(0, 6).map(async (p: any) => {
-                    try { const r = await getProjectPerformance(p._id); return r.data || r; }
+                    try { const r = await getProjectPerformance(p.id); return r.data || r; }
                     catch { return { projectName: p.name, totalTasks: 0, completedTasks: 0, completionRate: 0 }; }
                 }));
                 setBarData(perfs.map(p => ({ name: p.projectName?.slice(0, 14), completed: p.completedTasks, total: p.totalTasks, rate: p.completionRate })));
-                try { const t = await getTeamPerformance(user.id); setTeamPerf(t.data || t); } catch { }
+                // try { const t = await getTeamPerformance(user.id); setTeamPerf(t.data || t); } catch { }
             } catch (err) { console.error(err); }
             finally { setLoading(false); }
         };

@@ -38,6 +38,10 @@ export class CreateProjectDto {
   @IsMongoId({ each: true })
   @IsOptional()
   contributors?: string[];
+
+  @IsString()
+  @IsOptional()
+  projectVisibility?: string;
 }
 
 export class UpdateProjectDto extends PartialType(CreateProjectDto) {

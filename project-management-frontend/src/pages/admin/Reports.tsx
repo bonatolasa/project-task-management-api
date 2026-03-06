@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import api from '../../services/api';
 import { getDashboardStats } from '../../services/dashboardService';
 import type { DashboardStats } from '../../types/dashboard';
 import { BarChart3, TrendingUp, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
-const COLORS = ['#194f87', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const Reports: React.FC = () => {
     const [stats, setStats] = useState<DashboardStats | null>(null);

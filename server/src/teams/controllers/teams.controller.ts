@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Patch,Param, 
-Delete, UseGuards, 
-Req
+import {
+  Controller, Get, Post, Body, Patch, Param,
+  Delete, UseGuards,
+  Req
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 // import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -15,7 +16,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 @Controller('teams')
 // @UseGuards(JwtAuthGuard, RolesGuard)
 export class TeamsController {
-  constructor(private readonly teamsService: TeamsService) {}
+  constructor(private readonly teamsService: TeamsService) { }
 
 
   @Roles(Role.ADMIN)
@@ -31,7 +32,7 @@ export class TeamsController {
     };
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get()
@@ -44,25 +45,14 @@ export class TeamsController {
     };
   }
 
-  @Roles(Role.ADMIN)
-  @UseGuards(RolesGuard)
-  @JwtAuthGuard()
-  @Get(':id')
-  async findOne(@Param('id') id: string): Promise<SingleTeamResponseDto> {
-    const team = await this.teamsService.findById(id);
-    return {
-      success: true,
-      data: team,
-      message: 'Team retrieved successfully',
-    };
-  }
 
-  @Roles(Role.ADMIN,Role.MANAGER)
+
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Patch(':id')
   async update(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() updateTeamDto: UpdateTeamDto
   ): Promise<SingleTeamResponseDto> {
     const team = await this.teamsService.update(id, updateTeamDto);
@@ -73,7 +63,7 @@ export class TeamsController {
     };
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Delete(':id')
@@ -81,7 +71,7 @@ export class TeamsController {
     return await this.teamsService.remove(id);
   }
 
-  @Roles(Role.ADMIN,Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Post(':teamId/members/:userId')
@@ -97,7 +87,7 @@ export class TeamsController {
     };
   }
 
-  @Roles(Role.ADMIN,Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Delete(':teamId/members/:userId')
@@ -113,7 +103,7 @@ export class TeamsController {
     };
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('manager/:managerId')
@@ -126,7 +116,7 @@ export class TeamsController {
     };
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('member/:memberId')
@@ -136,6 +126,19 @@ export class TeamsController {
       success: true,
       data: teams,
       message: 'Teams retrieved by member',
+    };
+  }
+
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  @JwtAuthGuard()
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<SingleTeamResponseDto> {
+    const team = await this.teamsService.findById(id);
+    return {
+      success: true,
+      data: team,
+      message: 'Team retrieved successfully',
     };
   }
 }

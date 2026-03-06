@@ -1,6 +1,7 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete, UseGuards
 } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { ProjectsService } from '../services/projects.service';
@@ -97,11 +98,18 @@ export class ProjectsController {
     };
   }
 
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('contributor/:userId')
-  async getProjectsByContributor(@Param('userId') userId: string): Promise<ProjectListResponseDto> {
+  async getProjectsByContributor(
+    @Param('userId') userId: string,
+    @CurrentUser() user: { id: string; role: string }
+  ): Promise<ProjectListResponseDto> {
+    // Members can only see their own projects
+    if (user.role.toLowerCase() === 'member' && user.id !== userId) {
+      throw new ForbiddenException('You can only view your own projects');
+    }
     const projects = await this.projectsService.getProjectsByContributor(userId);
     return {
       success: true,
@@ -167,12 +175,15 @@ export class ProjectsController {
     };
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<SingleProjectResponseDto> {
-    const project = await this.projectsService.findById(id);
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; role: string }
+  ): Promise<SingleProjectResponseDto> {
+    const project = await this.projectsService.findById(id, user);
     return {
       success: true,
       data: project,

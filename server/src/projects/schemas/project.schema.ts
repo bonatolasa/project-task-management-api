@@ -34,6 +34,9 @@ export class Project extends Document {
   @Prop([{ type: MongooseSchema.Types.ObjectId, ref: 'User' }])
   contributors: Types.ObjectId[];
 
+  @Prop({ default: 'team' })
+  projectVisibility: string;
+
   @Prop() createdAt: Date;
   @Prop() updatedAt: Date;
 }

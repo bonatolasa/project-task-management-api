@@ -144,7 +144,7 @@ const DashboardOverview: React.FC = () => {
                         ) : (
                             overdueProjects.map((project) => (
                                 <div
-                                    key={project._id}
+                                    key={`project-${project._id}`}
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
@@ -250,7 +250,7 @@ const DashboardOverview: React.FC = () => {
                         ) : (
                             overdueTasks.map((task) => (
                                 <div
-                                    key={task._id}
+                                    key={`task-${task._id}`}
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',

@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getManagerProjects } from '../../services/dashboardService';
-import { Plus, Search, Trash2, Clock, Users } from 'lucide-react';
+import { Plus, Search, Trash2, Clock, Users, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Project {
-    _id: string;
+    _id?: string;
+    id?: string;          // some backends use `id`
     name: string;
     description?: string;
     status: string;
@@ -26,6 +28,8 @@ type ProjectStatus = 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'can
 
 const Projects: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth.user);
+    const userAny = user as unknown as { id?: string; _id?: string } | null;
+    const navigate = useNavigate();
     const [projects, setProjects] = useState<Project[]>([]);
     const [teams, setTeams] = useState<TeamOption[]>([]);
     const [loading, setLoading] = useState(true);
@@ -40,46 +44,54 @@ const Projects: React.FC = () => {
         deadline: '',
     });
 
+    const userId = userAny?.id || userAny?._id;
+
     const fetchProjects = async () => {
-        if (!user?.id) return;
+        if (!userId) return;
         try {
-            const res = await getManagerProjects(user.id);
+            const res = await getManagerProjects(userId);
             const data = res.data || res;
-            setProjects(Array.isArray(data) ? data : data?.projects || []);
-        } catch (err) { console.error(err); }
-        finally { setLoading(false); }
+            const projectsArray = Array.isArray(data) ? data : data?.projects || [];
+            setProjects(projectsArray);
+        } catch (err) {
+            console.error('Failed to fetch projects:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    useEffect(() => { fetchProjects(); }, [user?.id]);
+    useEffect(() => {
+        fetchProjects();
+    }, [userId]);
 
     useEffect(() => {
         const fetchTeams = async () => {
-            if (!user?.id) return;
+            if (!userId) return;
             try {
-                const res = await api.get(`/teams/manager/${user.id}`);
-                const data = res.data?.data || [];
-                setTeams(Array.isArray(data) ? data : []);
-            } catch {
+                const res = await api.get('/teams');
+                const responseData = res.data;
+                const teamsArray = responseData?.data || responseData?.teams || responseData;
+                setTeams(Array.isArray(teamsArray) ? teamsArray : []);
+            } catch (err) {
+                console.error('Failed to fetch teams:', err);
                 setTeams([]);
             }
         };
-
         fetchTeams();
-    }, [user?.id]);
+    }, [userId]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user?.id) {
+        if (!userId) {
             toast.error('Manager account not found');
             return;
         }
-
         try {
             await api.post('/projects', {
                 name: form.name.trim(),
                 description: form.description.trim() || undefined,
                 team: form.team,
-                manager: user.id,
+                manager: userId,
                 startDate: new Date(form.startDate).toISOString(),
                 deadline: new Date(form.deadline).toISOString(),
                 status: form.status,
@@ -95,16 +107,21 @@ const Projects: React.FC = () => {
                 deadline: '',
             });
             fetchProjects();
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Failed to create'); }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to create');
+        }
     };
 
     const handleDelete = async (id: string) => {
+        if (!id) return;
         if (!confirm('Delete this project?')) return;
         try {
             await api.delete(`/projects/${id}`);
             toast.success('Deleted');
             fetchProjects();
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Failed'); }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed');
+        }
     };
 
     const filtered = projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
@@ -171,34 +188,46 @@ const Projects: React.FC = () => {
                 <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>Loading...</div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
-                    {filtered.map(p => (
-                        <div key={p._id} style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6', transition: 'transform 0.2s' }}
-                            onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
-                            onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                <span style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>{p.name}</span>
-                                <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: '#fff', background: getStatusColor(p.status), textTransform: 'capitalize' }}>
-                                    {p.status?.replace(/[-_]/g, ' ')}
-                                </span>
-                            </div>
-                            {p.description && <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>{p.description}</p>}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <div style={{ flex: 1, height: 6, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
-                                    <div style={{ width: `${p.progress || 0}%`, height: '100%', borderRadius: 3, background: 'linear-gradient(90deg, #0f5841, #1b7a5c)' }} />
+                    {filtered.map(p => {
+                        const projectId = p._id || p.id;
+                        if (!projectId) return null;
+                        return (
+                            <div key={projectId} style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6', transition: 'transform 0.2s' }}
+                                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                                onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <span style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>{p.name}</span>
+                                    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: '#fff', background: getStatusColor(p.status), textTransform: 'capitalize' }}>
+                                        {p.status?.replace(/[-_]/g, ' ')}
+                                    </span>
                                 </div>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: '#0f5841' }}>{p.progress || 0}%</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ fontSize: 12, color: '#9ca3af', display: 'flex', gap: 12 }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {formatDate(p.deadline)}</span>
-                                    {p.team && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Users size={12} /> {p.team.name}</span>}
+                                {p.description && <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>{p.description}</p>}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
+                                        <div style={{ width: `${p.progress || 0}%`, height: '100%', borderRadius: 3, background: 'linear-gradient(90deg, #0f5841, #1b7a5c)' }} />
+                                    </div>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#0f5841' }}>{p.progress || 0}%</span>
                                 </div>
-                                <button onClick={() => handleDelete(p._id)} style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
-                                    <Trash2 size={13} color="#dc2626" />
-                                </button>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ fontSize: 12, color: '#9ca3af', display: 'flex', gap: 12 }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {formatDate(p.deadline)}</span>
+                                        {p.team && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Users size={12} /> {p.team.name}</span>}
+                                    </div>
+                                    <div>
+                                        <button
+                                            onClick={() => navigate(`/manager/projects/${projectId}`, { state: { project: p } })}
+                                            style={{ background: '#dbeafe', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', marginRight: 6 }}
+                                        >
+                                            <Eye size={13} color="#2563eb" />
+                                        </button>
+                                        <button onClick={() => handleDelete(projectId)} style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
+                                            <Trash2 size={13} color="#dc2626" />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

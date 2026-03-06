@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../../store/store';
 import { logout } from '../../store/authSlice';
@@ -14,7 +14,11 @@ const SettingsPage: React.FC = () => {
     // API endpoint selection
     const ENV_LOCAL = import.meta.env.VITE_API_LOCAL || 'http://localhost:3000/api';
     const ENV_DEPLOYED = import.meta.env.VITE_API_DEPLOYED || import.meta.env.VITE_API_URL || '';
-    const [currentUrl, setCurrentUrl] = useState(getApiBaseUrl());
+    const [selectedMode, setSelectedMode] = useState(localStorage.getItem('apiBaseUrl') || 'auto');
+    const [, setRefreshCount] = useState(0);
+
+    // Sync selectedMode with the actual acting URL for the display
+    const actingUrl = getApiBaseUrl();
 
 
     const handleLogout = () => {
@@ -28,7 +32,7 @@ const SettingsPage: React.FC = () => {
         <div style={{ maxWidth: 680 }}>
             <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: '0 0 24px' }}>Settings</h1>
 
-            {/* Profile */}
+            {/* Account */}
             <div style={cardStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
                     <Settings size={20} color="#194f87" />
@@ -68,19 +72,27 @@ const SettingsPage: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <select
-                        value={currentUrl}
+                        value={selectedMode}
                         onChange={e => {
-                            const newUrl = e.target.value;
-                            setCurrentUrl(newUrl);
-                            setApiBaseUrl(newUrl);
+                            const val = e.target.value;
+                            setSelectedMode(val);
+                            setApiBaseUrl(val);
+                            // Force a re-render to show updated acting URL
+                            setRefreshCount(prev => prev + 1);
+                            // Brief delay to allow the update to reflect if detection just happened
+                            // setTimeout(() => setCurrentUrl(getApiBaseUrl()), 200); // This line is no longer needed if setRefreshCount forces re-render
                         }}
                         style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer' }}
                     >
-                        <option value={ENV_LOCAL}>Local ({ENV_LOCAL})</option>
-                        {ENV_DEPLOYED && <option value={ENV_DEPLOYED}>Deployed</option>}
+                        <option value="auto">Automatic (Detection)</option>
+                        <option value={ENV_LOCAL}>Local (Manual)</option>
+                        {ENV_DEPLOYED && <option value={ENV_DEPLOYED}>Deployed (Manual)</option>}
                     </select>
                 </div>
-                <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>Current base URL: {currentUrl}</p>
+                <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
+                    Acting URL: <code style={{ color: '#10b981', fontWeight: 600 }}>{actingUrl}</code>
+                    {selectedMode === 'auto' && ' (Auto-detected)'}
+                </p>
             </div>
 
             {/* Security */}

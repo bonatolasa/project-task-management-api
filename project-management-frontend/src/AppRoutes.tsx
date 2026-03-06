@@ -22,13 +22,19 @@ import ManagerProjects from './pages/projectManager/Projects';
 import ManagerTasks from './pages/projectManager/Tasks';
 import ManagerReports from './pages/projectManager/Reports';
 import ManagerSettings from './pages/projectManager/Settings';
+import ActivityLogPage from './pages/common/ActivityLogPage';
+import ProjectDetails from './pages/projectManager/ProjectDetails'; // <-- import new component
 
 // Team Member
 import { TeamMemberLayout } from './Component/teamMember/TeamMemberLayout';
 import Dashboard from './pages/teamMember/Dashboard';
-import MemberTasks from './pages/teamMember/Tasks';
+// @ts-ignore: default export may not be detected correctly by TS in this workspace
+import MemberTasks from './pages/teamMember/Tasks.tsx';
 import MemberProgress from './pages/teamMember/Progress';
 import MemberProfile from './pages/teamMember/Profile';
+import TeamProjects from './pages/teamMember/Projects';
+// reuse manager project details for members (already imported above)
+import { normalizeRole } from './utils/auth';
 
 /** Redirect unauthenticated users to /login */
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -36,11 +42,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
     allowedRoles,
 }) => {
     const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+    const role = normalizeRole(user?.role);
 
     if (!isAuthenticated) return <Navigate to="/login" replace />;
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-        if (user.role === 'admin') return <Navigate to="/admin" replace />;
-        if (user.role === 'manager') return <Navigate to="/manager" replace />;
+    if (allowedRoles && !allowedRoles.includes(role)) {
+        if (role === 'admin') return <Navigate to="/admin" replace />;
+        if (role === 'manager') return <Navigate to="/manager" replace />;
         return <Navigate to="/dashboard" replace />;
     }
     return <>{children}</>;
@@ -68,6 +75,7 @@ export const AppRoutes: React.FC = () => {
                 <Route path="users" element={<UsersManagement />} />
                 <Route path="teams" element={<TeamsManagement />} />
                 <Route path="reports" element={<AdminReports />} />
+                <Route path="activities" element={<ActivityLogPage />} />
                 <Route path="settings" element={<AdminSettings />} />
             </Route>
 
@@ -82,8 +90,11 @@ export const AppRoutes: React.FC = () => {
             >
                 <Route index element={<ProjectManagerDashboard />} />
                 <Route path="projects" element={<ManagerProjects />} />
+                {/* 👇 New route for project details */}
+                <Route path="projects/:id" element={<ProjectDetails />} />
                 <Route path="tasks" element={<ManagerTasks />} />
                 <Route path="reports" element={<ManagerReports />} />
+                <Route path="activities" element={<ActivityLogPage />} />
                 <Route path="settings" element={<ManagerSettings />} />
             </Route>
 
@@ -98,6 +109,8 @@ export const AppRoutes: React.FC = () => {
             >
                 <Route index element={<Dashboard />} />
                 <Route path="tasks" element={<MemberTasks />} />
+                <Route path="projects" element={<TeamProjects />} />
+                <Route path="projects/:id" element={<ProjectDetails />} />
                 <Route path="progress" element={<MemberProgress />} />
                 <Route path="profile" element={<MemberProfile />} />
             </Route>

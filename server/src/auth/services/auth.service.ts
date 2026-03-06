@@ -12,7 +12,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     // Check if user already exists
@@ -26,7 +26,7 @@ export class AuthService {
 
     // Generate token
     const jwtData = { sub: user.id, email: user.email, role: user.role };
-    const accessToken =CommonUtils.generateJwtToken(jwtData);
+    const accessToken = CommonUtils.generateJwtToken(jwtData);
 
     return {
       success: true,
@@ -66,11 +66,12 @@ export class AuthService {
     await this.usersService.updateLastLogin(user._id.toString());
 
     // Generate token
-    const JwtLoginData = { 
+    const JwtLoginData = {
       sub: user._id.toString(),
-      email: user.email, 
-      role: user.role };
-    const accessToken =CommonUtils.generateJwtToken(JwtLoginData);
+      email: user.email,
+      role: user.role
+    };
+    const accessToken = CommonUtils.generateJwtToken(JwtLoginData);
 
     return {
       success: true,
@@ -95,5 +96,15 @@ export class AuthService {
       return result;
     }
     return null;
+  }
+
+  async verifyPassword(userId: string, password: string): Promise<boolean> {
+    try {
+      const user = await this.usersService.findByEmail((await this.usersService.getUserById(userId)).email);
+      if (!user) return false;
+      return bcrypt.compare(password, user.password);
+    } catch (error) {
+      return false;
+    }
   }
 }

@@ -31,7 +31,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats, loading }) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
                 {Array.from({ length: 6 }).map((_, i) => (
                     <div
-                        key={i}
+                        key={`loading-${i}`}
                         style={{
                             background: '#fff',
                             borderRadius: 16,

@@ -13,9 +13,9 @@ export class TaskResponseDto {
   id: string;
   title: string;
   description?: string;
-  project: TaskProjectDto;
-  assignedTo?: TaskUserDto;
-  createdBy: TaskUserDto;
+  project?: TaskProjectDto;
+  assignedTo?: TaskUserDto[];
+  createdBy?: TaskUserDto;
   status: string;
   percentageComplete: number;
   priority: string;

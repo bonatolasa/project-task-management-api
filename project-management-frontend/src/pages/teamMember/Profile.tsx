@@ -3,8 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../../store/store';
 import { logout } from '../../store/authSlice';
 import { useNavigate } from 'react-router-dom';
-import api, { profileApi } from '../../services/api';
-import { User, Mail, Shield, Save, LogOut } from 'lucide-react';
+import { profileApi } from '../../services/api';
+import { User, Save, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Profile: React.FC = () => {

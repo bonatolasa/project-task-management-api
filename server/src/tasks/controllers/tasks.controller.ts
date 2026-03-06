@@ -52,12 +52,17 @@ export class TasksController {
     };
   }
   
-  @Roles(Role.MANAGER)
+  @Roles(Role.MANAGER, Role.ADMIN, Role.MEMBER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get()
-  async findAll(): Promise<TaskListResponseDto> {
-    const tasks = await this.tasksService.findAll();
+  async findAll(
+    @Query('projectId') projectId?: string,
+    @CurrentUser() user?: { id: string; role: string }
+  ): Promise<TaskListResponseDto> {
+    const tasks = projectId
+      ? await this.tasksService.findByProject(projectId, user)
+      : await this.tasksService.findAll();
     return {
       success: true,
       data: tasks,
@@ -91,7 +96,7 @@ export class TasksController {
     };
   }
 
-  @Roles(Role.MANAGER, Role.MEMBER)
+  @Roles(Role.MANAGER, Role.MEMBER, Role.ADMIN)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Patch(':id')
@@ -123,7 +128,7 @@ export class TasksController {
     };
   }
 
-  @Roles(Role.MANAGER)
+  @Roles(Role.MANAGER, Role.ADMIN)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Delete(':id')

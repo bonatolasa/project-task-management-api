@@ -1,24 +1,52 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
-  Query, 
+  Query,
   Req
 } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
-import { SingleUserResponseDto, UserListResponseDto } from '../responses/users.response';
-import { CreateUserDto, UpdateUserDto} from '../dtos/users.dto';
+import { SingleUserResponseDto, UserListResponseDto, GenericListResponseDto } from '../responses/users.response';
+import { CreateUserDto, UpdateUserDto } from '../dtos/users.dto';
 import { User } from '../schemas/users.schemas';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getMe(@CurrentUser() user: { id: string }): Promise<SingleUserResponseDto> {
+    return this.getUserById(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('managers/stats')
+  async getManagerStats(): Promise<GenericListResponseDto<any>> {
+    const stats = await this.usersService.getManagerStats();
+    return {
+      success: true,
+      data: stats,
+      message: 'Manager stats retrieved successfully',
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  async updateMe(
+    @CurrentUser() user: { id: string },
+    @Body() updateUserDto: UpdateUserDto
+  ): Promise<SingleUserResponseDto> {
+    return this.updateUser(user.id, updateUserDto);
+  }
 
   @Post()
   async createUsers(@Body() createUserDto: CreateUserDto): Promise<SingleUserResponseDto> {
@@ -52,7 +80,7 @@ export class UsersController {
 
   @Patch(':id')
   async updateUser(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto
   ): Promise<SingleUserResponseDto> {
     const user = await this.usersService.updateUser(id, updateUserDto);

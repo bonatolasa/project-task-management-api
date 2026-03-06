@@ -5,6 +5,9 @@ export class CreateNotificationDto {
     userId: string;
 
     @IsString()
+    title: string;
+
+    @IsString()
     message: string;
 
     @IsString()

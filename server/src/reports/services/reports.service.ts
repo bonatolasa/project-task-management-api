@@ -139,7 +139,7 @@ export class ReportsService {
     const memberStats = await Promise.all(
       team.members.map(async (member: any) => {
         const userTasks = tasks.filter(t =>
-          t.assignedTo?.equals(member._id)
+          t.assignedTo && t.assignedTo.some((a: Types.ObjectId) => a.equals(member._id))
         );
 
         const completedUserTasks = userTasks.filter(t => t.status === 'completed').length;
@@ -218,7 +218,7 @@ export class ReportsService {
 
     team.members.forEach((member: any) => {
       const memberTasks = tasks.filter(t =>
-        t.assignedTo && t.assignedTo?.equals(member._id)
+        t.assignedTo && t.assignedTo.some((a: any) => a.equals(member._id))
       );
 
       workloadByMember[member._id.toString()] = {

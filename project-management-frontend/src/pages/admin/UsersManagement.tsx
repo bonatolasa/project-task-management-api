@@ -10,6 +10,7 @@ interface UserData {
     role: string;
     createdAt?: string;
     isActive?: boolean;
+    projectCount?: number;
 }
 
 const UsersManagement: React.FC = () => {
@@ -21,52 +22,69 @@ const UsersManagement: React.FC = () => {
     const [editUser, setEditUser] = useState<UserData | null>(null);
     const [form, setForm] = useState({ name: '', email: '', password: '', role: 'member' });
 
-   const fetchUsers = async () => {
-  try {
-    const res = await api.get('/users');
-    console.log('API response:', res); // 👈 Check the network tab
-    const responseData = res.data;
+    const fetchUsers = async () => {
+        try {
+            const res = await api.get('/users');
+            console.log('API response:', res); // 👈 Check the network tab
+            const responseData = res.data;
 
-    // Extract array from response (backend returns { success, data, message })
-    let usersArray = [];
-    if (responseData.data && Array.isArray(responseData.data)) {
-      usersArray = responseData.data;
-    } else if (Array.isArray(responseData)) {
-      usersArray = responseData;
-    } else {
-      console.warn('Unexpected response structure:', responseData);
-      toast.error('Unexpected server response');
-      setUsers([]);
-      return;
-    }
+            // Extract array from response (backend returns { success, data, message })
+            let usersArray = [];
+            if (responseData.data && Array.isArray(responseData.data)) {
+                usersArray = responseData.data;
+            } else if (Array.isArray(responseData)) {
+                usersArray = responseData;
+            } else {
+                console.warn('Unexpected response structure:', responseData);
+                toast.error('Unexpected server response');
+                setUsers([]);
+                return;
+            }
 
-    const normalized = usersArray.map((user: any) => ({
-      ...user,
-      _id: user._id || user.id,
-    }));
-    setUsers(normalized);
-  } catch (err: any) {
-    console.error('Fetch error:', err);
-    // Show specific message based on status
-    if (err.response) {
-      const status = err.response.status;
-      const message = err.response.data?.message || err.message;
-      if (status === 401) {
-        toast.error('Authentication failed. Please log in again.');
-      } else if (status === 403) {
-        toast.error('You do not have permission to view users (admin only).');
-      } else {
-        toast.error(message || 'Failed to load users');
-      }
-    } else if (err.request) {
-      toast.error('No response from server. Check your network or backend.');
-    } else {
-      toast.error(err.message || 'Failed to load users');
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+            const normalized = usersArray.map((user: any) => ({
+                ...user,
+                _id: user._id || user.id,
+            }));
+
+            // Fetch manager stats if there are managers
+            if (normalized.some((u: UserData) => u.role === 'manager')) {
+                try {
+                    const statsRes = await api.get('/users/managers/stats');
+                    const stats = statsRes.data.data;
+                    normalized.forEach((u: UserData) => {
+                        if (u.role === 'manager') {
+                            const s = stats.find((item: any) => item.id === u._id);
+                            u.projectCount = s ? s.projectCount : 0;
+                        }
+                    });
+                } catch (err) {
+                    console.error('Failed to fetch manager stats:', err);
+                }
+            }
+
+            setUsers(normalized);
+        } catch (err: any) {
+            console.error('Fetch error:', err);
+            // Show specific message based on status
+            if (err.response) {
+                const status = err.response.status;
+                const message = err.response.data?.message || err.message;
+                if (status === 401) {
+                    toast.error('Authentication failed. Please log in again.');
+                } else if (status === 403) {
+                    toast.error('You do not have permission to view users (admin only).');
+                } else {
+                    toast.error(message || 'Failed to load users');
+                }
+            } else if (err.request) {
+                toast.error('No response from server. Check your network or backend.');
+            } else {
+                toast.error(err.message || 'Failed to load users');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchUsers();
@@ -222,7 +240,7 @@ const UsersManagement: React.FC = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
-                                {['User', 'Email', 'Role', 'Actions'].map(h => (
+                                {['User', 'Email', 'Role', 'Projects', 'Actions'].map(h => (
                                     <th key={h} style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>{h}</th>
                                 ))}
                             </tr>
@@ -245,6 +263,23 @@ const UsersManagement: React.FC = () => {
                                         <span style={{ background: getRoleStyle(u.role).bg, color: getRoleStyle(u.role).color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, textTransform: 'capitalize' }}>
                                             {u.role === 'manager' ? 'Manager' : u.role}
                                         </span>
+                                    </td>
+                                    <td style={{ padding: '14px 20px', fontSize: 13, color: '#6b7280' }}>
+                                        {u.role === 'manager' ? (
+                                            <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 4,
+                                                padding: '2px 8px',
+                                                borderRadius: 6,
+                                                background: u.projectCount && u.projectCount > 0 ? '#eff6ff' : '#fef2f2',
+                                                color: u.projectCount && u.projectCount > 0 ? '#1d4ed8' : '#dc2626',
+                                                fontWeight: 600,
+                                                fontSize: 12
+                                            }}>
+                                                {u.projectCount || 0} {u.projectCount === 1 ? 'Project' : 'Projects'}
+                                            </span>
+                                        ) : '—'}
                                     </td>
                                     <td style={{ padding: '14px 20px' }}>
                                         <div style={{ display: 'flex', gap: 6 }}>

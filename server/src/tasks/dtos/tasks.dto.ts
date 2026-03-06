@@ -15,9 +15,10 @@ export class CreateTaskDto {
   @IsMongoId()
   project: string;
 
-  @IsMongoId()
+  @IsArray()
+  @IsMongoId({ each: true })
   @IsOptional()
-  assignedTo?: string;
+  assignedTo?: string[];
 
   @IsMongoId()
   createdBy: string;

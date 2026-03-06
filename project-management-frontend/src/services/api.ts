@@ -1,27 +1,73 @@
-import axios, {type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 
-// runtime base URL management; enables switching between local and deployed endpoints
+// runtime base URL management
 const DEFAULT_LOCAL = 'http://localhost:3000/api';
 const ENV_LOCAL = import.meta.env.VITE_API_LOCAL || DEFAULT_LOCAL;
 const ENV_DEPLOYED = import.meta.env.VITE_API_DEPLOYED || import.meta.env.VITE_API_URL || '';
 
-let baseUrl = localStorage.getItem('apiBaseUrl') || ENV_LOCAL || DEFAULT_LOCAL;
-if (!baseUrl && ENV_DEPLOYED) baseUrl = ENV_DEPLOYED;
+const getInitialBaseUrl = () => {
+  const saved = localStorage.getItem('apiBaseUrl');
+  if (saved && saved !== 'auto') return saved;
+  // If 'auto' or not set, return local as temporary default
+  return ENV_LOCAL;
+};
+
+let baseUrl: string = getInitialBaseUrl();
 
 let api: AxiosInstance = axios.create({
   baseURL: baseUrl,
   headers: { 'Content-Type': 'application/json' },
 });
 
-function setApiBaseUrl(url: string) {
+// Auto-detection logic
+async function detectBestApiUrl() {
+  const saved = localStorage.getItem('apiBaseUrl');
+  if (saved && saved !== 'auto') return; // User manually set a URL
+
+  try {
+    // Ping local backend with a short timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+    await fetch(ENV_LOCAL, {
+      method: 'HEAD',
+      mode: 'no-cors',
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    console.log('📡 Local backend detected, using:', ENV_LOCAL);
+    setApiBaseUrlInner(ENV_LOCAL);
+  } catch (err) {
+    console.log('🌐 Local backend unavailable, falling back to:', ENV_DEPLOYED);
+    if (ENV_DEPLOYED) {
+      setApiBaseUrlInner(ENV_DEPLOYED);
+    }
+  }
+}
+
+// Internal setter that doesn't overwrite 'auto' in localStorage
+function setApiBaseUrlInner(url: string) {
   baseUrl = url;
-  localStorage.setItem('apiBaseUrl', url);
   api.defaults.baseURL = url;
+}
+
+function setApiBaseUrl(url: string) {
+  if (url === 'auto') {
+    localStorage.setItem('apiBaseUrl', 'auto');
+    detectBestApiUrl();
+  } else {
+    localStorage.setItem('apiBaseUrl', url);
+    setApiBaseUrlInner(url);
+  }
 }
 
 function getApiBaseUrl() {
   return api.defaults.baseURL || baseUrl;
 }
+
+// Initial detection
+detectBestApiUrl();
 
 // Add a request interceptor to attach the token if available
 api.interceptors.request.use(
@@ -91,5 +137,5 @@ const profileApi = {
   },
 };
 
-export { api, setApiBaseUrl, getApiBaseUrl, adminApi, teamsApi, profileApi };
+export { api, setApiBaseUrl, getApiBaseUrl, adminApi, teamsApi, tasksApi, profileApi };
 export default api;

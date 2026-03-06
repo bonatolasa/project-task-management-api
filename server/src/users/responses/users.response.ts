@@ -21,3 +21,9 @@ export class SingleUserResponseDto {
   data: UserResponseDto;
   message: string;
 }
+
+export class GenericListResponseDto<T> {
+  success: boolean;
+  data: T[];
+  message: string;
+}

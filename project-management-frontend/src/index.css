@@ -1,11 +1,11 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
 
 @theme {
   --color-primary: #194f87;
   --color-primary-light: #2a6fb0;
   --color-primary-dark: #0f3a64;
-  
+
   --color-secondary: #0f5841;
   --color-secondary-light: #1b7a5c;
   --color-secondary-dark: #0a3f2f;
@@ -13,7 +13,8 @@
   --color-accent: #F59E0B;
   --color-background: #F9FAFB;
 
-  --color-text-main: #111827; /* named text-main to avoid text-text conflict */
+  --color-text-main: #111827;
+  /* named text-main to avoid text-text conflict */
   --color-text-muted: #687280;
 
   --color-success: #10B981;

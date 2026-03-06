@@ -1,9 +1,11 @@
 import { Controller, Get, Param, Query, UseGuards,ParseIntPipe 
 } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { IsDate, IsOptional } from 'class-validator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { ReportsService } from '../services/reports.service';
 import { Role } from 'src/enums/role.enum';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -48,7 +50,17 @@ export class ReportsController {
   }
 
   @Get('user-performance/:userId')
-  async getUserPerformance(@Param('userId') userId: string): Promise<UserPerformanceResponseDto> {
+  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
+  @UseGuards(RolesGuard)
+  @JwtAuthGuard()
+  async getUserPerformance(
+    @Param('userId') userId: string,
+    @CurrentUser() user: { id: string; role: string }
+  ): Promise<UserPerformanceResponseDto> {
+    // Members can only view their own performance
+    if (user.role.toLowerCase() === 'member' && user.id !== userId) {
+      throw new ForbiddenException('You can only view your own performance');
+    }
     const performance = await this.reportsService.getUserPerformance(userId);
     return {
       success: true,

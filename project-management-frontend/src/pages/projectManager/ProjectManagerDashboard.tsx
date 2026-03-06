@@ -37,6 +37,7 @@ const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const ProjectManagerDashboard: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth.user);
+    const userAny = user as unknown as { id?: string; _id?: string; team?: string; teamId?: string } | null;
     const navigate = useNavigate();
     const [projects, setProjects] = useState<Project[]>([]);
     const [teamPerf, setTeamPerf] = useState<TeamPerformance | null>(null);
@@ -44,12 +45,14 @@ const ProjectManagerDashboard: React.FC = () => {
     const [projectPerfs, setProjectPerfs] = useState<ProjectPerformance[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const userId = userAny?.id || userAny?._id;
+
     useEffect(() => {
         const fetchData = async () => {
-            if (!user?.id) return;
+            if (!userId) return;
             try {
                 const [projRes, dueRes] = await Promise.allSettled([
-                    getManagerProjects(user.id),
+                    getManagerProjects(userId),
                     getDueSoonTasks(7),
                 ]);
 
@@ -65,17 +68,30 @@ const ProjectManagerDashboard: React.FC = () => {
                 }
 
                 // Fetch team performance if user has a team
-                try {
-                    if (!user.team) throw new Error('No team assigned');
-                    const teamRes = await getTeamPerformance(user.team);
-                    const tData = teamRes.data || teamRes;
-                    setTeamPerf(tData);
-                } catch { /* team performance may not be available */ }
-
-                // Fetch per-project performance
-                const perfPromises = fetchedProjects.slice(0, 5).map(async (p) => {
+                const teamId = userAny?.team || userAny?.teamId;
+                if (teamId) {
                     try {
-                        const res = await getProjectPerformance(p._id);
+                        const teamRes = await getTeamPerformance(teamId);
+                        const tData = teamRes.data || teamRes;
+                        setTeamPerf(tData);
+                    } catch {
+                        // team performance may not be available
+                    }
+                }
+
+                // Fetch per-project performance – only for projects with a valid ID
+                const validProjects = fetchedProjects.filter((p) => {
+                    const project = p as Project & { id?: string };
+                    return Boolean(project._id || project.id);
+                });
+                const perfPromises = validProjects.slice(0, 5).map(async (p) => {
+                    const project = p as Project & { id?: string };
+                    const projectId = project._id || project.id;
+                    if (!projectId) {
+                        return { projectName: p.name, totalTasks: 0, completedTasks: 0, overdueTasks: 0, completionRate: 0 };
+                    }
+                    try {
+                        const res = await getProjectPerformance(projectId);
                         return res.data || res;
                     } catch {
                         return { projectName: p.name, totalTasks: 0, completedTasks: 0, overdueTasks: 0, completionRate: 0 };
@@ -90,7 +106,7 @@ const ProjectManagerDashboard: React.FC = () => {
             }
         };
         fetchData();
-    }, [user?.id]);
+    }, [userId, userAny?.team, userAny?.teamId]);
 
     const formatDate = (date: string) =>
         new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -99,7 +115,7 @@ const ProjectManagerDashboard: React.FC = () => {
         const map: Record<string, string> = {
             completed: '#10b981',
             'in-progress': '#3b82f6',
-            'in_progress': '#3b82f6',
+            in_progress: '#3b82f6',
             active: '#3b82f6',
             'not-started': '#9ca3af',
             planning: '#8b5cf6',
@@ -169,7 +185,7 @@ const ProjectManagerDashboard: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                     <button
-                        onClick={() => navigate('/manager/projects/create')}
+                        onClick={() => navigate('/manager/projects')}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -188,7 +204,7 @@ const ProjectManagerDashboard: React.FC = () => {
                         <Plus size={16} /> New Project
                     </button>
                     <button
-                        onClick={() => navigate('/manager/tasks/create')}
+                        onClick={() => navigate('/manager/tasks')}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -209,16 +225,16 @@ const ProjectManagerDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Mini Stats */}
+            {/* Mini Stats – add key */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
                 {[
                     { label: 'My Projects', value: projects.length, icon: FolderKanban, color: '#0f5841', bg: '#e6f7f0' },
                     { label: 'Due Soon', value: dueSoon.length, icon: Clock, color: '#f59e0b', bg: '#fef3c7' },
                     { label: 'Team Tasks', value: teamPerf?.totalTasks || 0, icon: ListTodo, color: '#3b82f6', bg: '#dbeafe' },
                     { label: 'Completion', value: `${teamPerf?.completionRate || 0}%`, icon: CheckCircle2, color: '#10b981', bg: '#d1fae5' },
-                ].map((s) => (
+                ].map((s, index) => (
                     <div
-                        key={s.label}
+                        key={index} // unique key added
                         style={{
                             background: '#fff',
                             borderRadius: 14,
@@ -244,6 +260,7 @@ const ProjectManagerDashboard: React.FC = () => {
                 ))}
             </div>
 
+            {/* ... rest of the JSX (unchanged) ... */}
             {/* Projects + Charts Row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24, marginBottom: 24 }}>
                 {/* Project Cards */}
@@ -272,60 +289,64 @@ const ProjectManagerDashboard: React.FC = () => {
                                 <p style={{ margin: 0 }}>No projects assigned yet</p>
                             </div>
                         ) : (
-                            projects.slice(0, 6).map((project) => (
-                                <div
-                                    key={project._id}
-                                    style={{
-                                        padding: '16px 24px',
-                                        borderBottom: '1px solid #f9fafb',
-                                        cursor: 'pointer',
-                                        transition: 'background 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#fafafa')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                        <span style={{ fontWeight: 600, color: '#111827', fontSize: 14 }}>{project.name}</span>
-                                        <span
-                                            style={{
-                                                padding: '3px 10px',
-                                                borderRadius: 20,
-                                                fontSize: 11,
-                                                fontWeight: 600,
-                                                color: '#fff',
-                                                background: getStatusColor(project.status),
-                                                textTransform: 'capitalize',
-                                            }}
-                                        >
-                                            {project.status?.replace(/[-_]/g, ' ')}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                                        <div style={{ flex: 1, height: 6, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
-                                            <div
+                            projects.slice(0, 6).map((project) => {
+                                const projectItem = project as Project & { id?: string };
+                                const projectId = projectItem._id || projectItem.id || project.name;
+                                return (
+                                    <div
+                                        key={projectId}
+                                        style={{
+                                            padding: '16px 24px',
+                                            borderBottom: '1px solid #f9fafb',
+                                            cursor: 'pointer',
+                                            transition: 'background 0.15s',
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.background = '#fafafa')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                            <span style={{ fontWeight: 600, color: '#111827', fontSize: 14 }}>{project.name}</span>
+                                            <span
                                                 style={{
-                                                    width: `${project.progress || 0}%`,
-                                                    height: '100%',
-                                                    borderRadius: 3,
-                                                    background: `linear-gradient(90deg, #0f5841, #1b7a5c)`,
-                                                    transition: 'width 0.5s',
+                                                    padding: '3px 10px',
+                                                    borderRadius: 20,
+                                                    fontSize: 11,
+                                                    fontWeight: 600,
+                                                    color: '#fff',
+                                                    background: getStatusColor(project.status),
+                                                    textTransform: 'capitalize',
                                                 }}
-                                            />
-                                        </div>
-                                        <span style={{ fontSize: 12, fontWeight: 600, color: '#0f5841' }}>{project.progress || 0}%</span>
-                                    </div>
-                                    <div style={{ fontSize: 12, color: '#9ca3af', display: 'flex', gap: 12 }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            <Clock size={12} /> {formatDate(project.deadline)}
-                                        </span>
-                                        {project.team?.name && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                <Users size={12} /> {project.team.name}
+                                            >
+                                                {project.status?.replace(/[-_]/g, ' ')}
                                             </span>
-                                        )}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                                            <div style={{ flex: 1, height: 6, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
+                                                <div
+                                                    style={{
+                                                        width: `${project.progress || 0}%`,
+                                                        height: '100%',
+                                                        borderRadius: 3,
+                                                        background: `linear-gradient(90deg, #0f5841, #1b7a5c)`,
+                                                        transition: 'width 0.5s',
+                                                    }}
+                                                />
+                                            </div>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: '#0f5841' }}>{project.progress || 0}%</span>
+                                        </div>
+                                        <div style={{ fontSize: 12, color: '#9ca3af', display: 'flex', gap: 12 }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <Clock size={12} /> {formatDate(project.deadline)}
+                                            </span>
+                                            {project.team?.name && (
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <Users size={12} /> {project.team.name}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>
@@ -402,8 +423,8 @@ const ProjectManagerDashboard: React.FC = () => {
                                     { label: 'Done', value: teamPerf.completedTasks, color: '#10b981' },
                                     { label: 'In Progress', value: teamPerf.inProgressTasks, color: '#f59e0b' },
                                     { label: 'Overdue', value: teamPerf.overdueTasks, color: '#ef4444' },
-                                ].map((m) => (
-                                    <div key={m.label} style={{ textAlign: 'center', padding: 10, borderRadius: 10, background: '#f9fafb' }}>
+                                ].map((m, idx) => (
+                                    <div key={idx} style={{ textAlign: 'center', padding: 10, borderRadius: 10, background: '#f9fafb' }}>
                                         <div style={{ fontSize: 20, fontWeight: 700, color: m.color }}>{m.value}</div>
                                         <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{m.label}</div>
                                     </div>
@@ -470,11 +491,11 @@ const ProjectManagerDashboard: React.FC = () => {
                                 <p style={{ margin: 0, fontSize: 14 }}>No upcoming deadlines</p>
                             </div>
                         ) : (
-                            dueSoon.map((task) => {
+                            dueSoon.map((task, index) => {
                                 const isOverdue = new Date(task.deadline) < new Date();
                                 return (
                                     <div
-                                        key={task._id}
+                                        key={task._id || `due-${index}`}
                                         style={{
                                             padding: '14px 24px',
                                             borderBottom: '1px solid #f9fafb',

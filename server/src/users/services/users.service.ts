@@ -2,9 +2,11 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../schemas/users.schemas';
+import { Project } from 'src/projects/schemas/project.schema';
 import { CreateUserDto, UpdateUserDto } from '../dtos/users.dto';
 import { UserResponseDto } from '../responses/users.response';
 import * as bcrypt from 'bcryptjs';
+import { Role } from 'src/enums/role.enum';
 
 
 
@@ -12,28 +14,29 @@ import * as bcrypt from 'bcryptjs';
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
-  ) {}
+    @InjectModel(Project.name) private projectModel: Model<Project>,
+  ) { }
 
   //create user with hashed password and check for duplicate email
   async createUsers(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     // Check if email already exists
-    const existingUser = await this.userModel.findOne({ 
-      email: createUserDto.email.toLowerCase() 
+    const existingUser = await this.userModel.findOne({
+      email: createUserDto.email.toLowerCase()
     });
-    
+
     if (existingUser) {
       throw new BadRequestException('Email already exists');
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    
+
     const createdUser = new this.userModel({
       ...createUserDto,
       email: createUserDto.email.toLowerCase(),
       password: hashedPassword,
     });
-    
+
     const savedUser = await createdUser.save();
     return this.mapToResponseDto(savedUser);
   }
@@ -44,7 +47,7 @@ export class UsersService {
       .find()
       .populate('team', 'name')
       .exec();
-    
+
     return users.map(user => this.mapToResponseDto(user));
   }
 
@@ -54,19 +57,19 @@ export class UsersService {
       .findById(id)
       .populate('team', 'name')
       .exec();
-    
+
     if (!user) {
       throw new BadRequestException(`User with ID ${id} not found`);
     }
-    
+
     return this.mapToResponseDto(user);
   }
 
-    async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<User | null> {
     return this.userModel.findOne({ email: email.toLowerCase() }).exec();
   }
 
-//UPDATE USER SERVICES
+  //UPDATE USER SERVICES
   async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
     // If password is being updated, hash it
     if (updateUserDto.password) {
@@ -77,11 +80,11 @@ export class UsersService {
     if (updateUserDto.email) {
       const normalizedEmail = updateUserDto.email.toLowerCase().trim();
 
-      const existingUser = await this.userModel.findOne({   
+      const existingUser = await this.userModel.findOne({
         email: normalizedEmail,
         _id: { $ne: id } // Exclude current user from check
       });
-    
+
       if (existingUser) {
         throw new BadRequestException('Email already exists');
       }
@@ -91,28 +94,28 @@ export class UsersService {
 
     const updatedUser = await this.userModel
       .findByIdAndUpdate(
-        id, 
-        updateUserDto, 
+        id,
+        updateUserDto,
         { new: true, runValidators: true }
       )
       .populate('team', 'name')
       .exec();
-    
+
     if (!updatedUser) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    
+
     return this.mapToResponseDto(updatedUser);
   }
 
   //DELETE USER BYid
   async removeUser(id: string): Promise<{ success: boolean; message: string }> {
     const result = await this.userModel.findByIdAndDelete(id).exec();
-    
+
     if (!result) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    
+
     return {
       success: true,
       message: 'User deleted successfully',
@@ -125,7 +128,7 @@ export class UsersService {
       .find({ role })
       .populate('team', 'name')
       .exec();
-    
+
     return users.map(user => this.mapToResponseDto(user));
   }
 
@@ -133,7 +136,7 @@ export class UsersService {
     const users = await this.userModel
       .find({ team: teamId })
       .exec();
-    
+
     return users.map(user => this.mapToResponseDto(user));
   }
 
@@ -141,6 +144,20 @@ export class UsersService {
     await this.userModel.findByIdAndUpdate(userId, {
       lastLogin: new Date(),
     }).exec();
+  }
+
+  async getManagerStats(): Promise<any[]> {
+    const managers = await this.userModel.find({ role: Role.MANAGER }).exec();
+    const stats = await Promise.all(managers.map(async (manager) => {
+      const projectCount = await this.projectModel.countDocuments({ manager: manager._id }).exec();
+      return {
+        id: manager._id,
+        name: manager.name,
+        email: manager.email,
+        projectCount,
+      };
+    }));
+    return stats;
   }
 
   private mapToResponseDto(user: User): UserResponseDto {

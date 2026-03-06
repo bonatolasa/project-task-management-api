@@ -29,7 +29,6 @@ const TeamsManagement: React.FC = () => {
     const [form, setForm] = useState({
         name: '',
         description: '',
-        manager: '',
         members: [] as string[]
     });
 
@@ -52,7 +51,8 @@ const TeamsManagement: React.FC = () => {
             const normalizedTeams = teamsArray.map((t: any) => ({
                 ...t,
                 _id: t._id || t.id,
-                manager: t.manager ? { _id: t.manager._id || t.manager.id, name: t.manager.name } : undefined
+                manager: t.manager ? { _id: t.manager._id || t.manager.id, name: t.manager.name } : undefined,
+                members: t.members?.map((m: any) => ({ ...m, _id: m._id || m.id }))
             }));
             setTeams(normalizedTeams);
 
@@ -74,11 +74,25 @@ const TeamsManagement: React.FC = () => {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!form.name.trim()) {
+            toast.error('Team name is required');
+            return;
+        }
+        if (!form.members || form.members.length === 0) {
+            toast.error('At least one member is required');
+            return;
+        }
         try {
-            await api.post('/teams/create', form);
+            // manager no longer required; backend should ignore it if empty
+            const payload: any = {
+                name: form.name,
+                description: form.description || undefined,
+            };
+            if (form.members && form.members.length > 0) payload.members = form.members;
+            await api.post('/teams/create', payload);
             toast.success('Team created!');
             setShowCreate(false);
-            setForm({ name: '', description: '', manager: '', members: [] });
+            setForm({ name: '', description: '', members: [] });
             fetchData();
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to create team');
@@ -92,7 +106,12 @@ const TeamsManagement: React.FC = () => {
             return;
         }
         try {
-            await api.patch(`/teams/${editTeam._id}`, form);
+            const payload: any = {
+                name: form.name,
+                description: form.description || undefined,
+            };
+            if (form.members && form.members.length > 0) payload.members = form.members;
+            await api.patch(`/teams/${editTeam._id}`, payload);
             toast.success('Team updated!');
             setEditTeam(null);
             fetchData();
@@ -118,13 +137,10 @@ const TeamsManagement: React.FC = () => {
         setForm({
             name: team.name,
             description: team.description || '',
-            manager: team.manager?._id || '',
             members: team.members?.map(m => m._id) || []
         });
     };
 
-    // Filter users for manager dropdown: only 'manager' role
-    const eligibleManagers = allUsers.filter(u => u.role === 'manager');
     // Filter users for member checkboxes: only 'member' role
     const eligibleMembers = allUsers.filter(u => u.role === 'member');
 
@@ -166,7 +182,7 @@ const TeamsManagement: React.FC = () => {
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>Teams</h1>
                     <p style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>{teams.length} teams</p>
                 </div>
-                <button onClick={() => { setShowCreate(true); setEditTeam(null); setForm({ name: '', description: '', manager: '', members: [] }); }} style={btnPrimary}>
+                <button onClick={() => { setShowCreate(true); setEditTeam(null); setForm({ name: '', description: '', members: [] }); }} style={btnPrimary}>
                     <Plus size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} /> New Team
                 </button>
             </div>
@@ -190,17 +206,6 @@ const TeamsManagement: React.FC = () => {
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Description</label>
                                 <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-                            </div>
-                            <div>
-                                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Manager</label>
-                                <select value={form.manager} onChange={e => setForm({ ...form, manager: e.target.value })} style={inputStyle} required>
-                                    <option value="">Select a manager</option>
-                                    {eligibleManagers.map(user => (
-                                        <option key={user._id} value={user._id}>
-                                            {user.name} ({user.role})
-                                        </option>
-                                    ))}
-                                </select>
                             </div>
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Members</label>
@@ -278,7 +283,7 @@ const TeamsManagement: React.FC = () => {
                             {t.members && t.members.length > 0 && (
                                 <div style={{ display: 'flex', marginTop: 12, gap: -4 }}>
                                     {t.members.slice(0, 5).map((m, i) => (
-                                        <div key={m._id} style={{
+                                        <div key={m._id || `member-${i}`} style={{
                                             width: 30, height: 30, borderRadius: '50%', background: `hsl(${i * 60 + 200}, 50%, 50%)`,
                                             display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700,
                                             border: '2px solid #fff', marginLeft: i > 0 ? -8 : 0
