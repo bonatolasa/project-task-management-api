@@ -11,6 +11,7 @@ import { Role } from 'src/enums/role.enum';
 import { SingleTeamResponseDto, TeamListResponseDto } from '../responses/teams.response';
 import { CreateTeamDto, UpdateTeamDto } from '../dtos/teams.dto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 
 @Controller('teams')
@@ -116,16 +117,16 @@ export class TeamsController {
     };
   }
 
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
-  @Get('member/:memberId')
-  async getTeamsByMember(@Param('memberId') memberId: string): Promise<TeamListResponseDto> {
-    const teams = await this.teamsService.getTeamsByMember(memberId);
+  @Get('my-team')
+  async getMyTeam(@CurrentUser() user: { id: string }): Promise<SingleTeamResponseDto> {
+    const team = await this.teamsService.getTeamByMember(user.id);
     return {
       success: true,
-      data: teams,
-      message: 'Teams retrieved by member',
+      data: team,
+      message: 'Team retrieved successfully',
     };
   }
 

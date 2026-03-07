@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Body, Patch, Param, Delete, UseGuards
+  Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, InternalServerErrorException
 } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -25,14 +25,22 @@ export class ProjectsController {
     @Body() createProjectDto: CreateProjectDto,
     @CurrentUser() user: { id: string },
   ): Promise<SingleProjectResponseDto> {
-    createProjectDto.manager = createProjectDto.manager || user.id;
-    createProjectDto.startDate = createProjectDto.startDate || new Date();
-    const project = await this.projectsService.create(createProjectDto);
-    return {
-      success: true,
-      data: project,
-      message: 'Project created successfully',
-    };
+    try {
+      createProjectDto.manager = createProjectDto.manager || user.id;
+      createProjectDto.startDate = createProjectDto.startDate || new Date();
+      const project = await this.projectsService.create(createProjectDto);
+      return {
+        success: true,
+        data: project,
+        message: 'Project created successfully',
+      };
+    } catch (err) {
+      // Log the error for debugging and return a generic 500 message
+      // The stack will appear in the server console
+      // eslint-disable-next-line no-console
+      console.error('Error in ProjectsController.create:', err);
+      throw new InternalServerErrorException('Failed to create project');
+    }
   }
 
   @Roles(Role.ADMIN)

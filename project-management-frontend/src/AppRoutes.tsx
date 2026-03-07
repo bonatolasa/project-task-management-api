@@ -33,7 +33,8 @@ import MemberTasks from './pages/teamMember/Tasks.tsx';
 import MemberProgress from './pages/teamMember/Progress';
 import MemberProfile from './pages/teamMember/Profile';
 import TeamProjects from './pages/teamMember/Projects';
-// reuse manager project details for members (already imported above)
+import Team from './pages/teamMember/Team';
+import MemberProjectDetails from './pages/teamMember/ProjectDetails';
 import { normalizeRole } from './utils/auth';
 
 /** Redirect unauthenticated users to /login */
@@ -110,7 +111,8 @@ export const AppRoutes: React.FC = () => {
                 <Route index element={<Dashboard />} />
                 <Route path="tasks" element={<MemberTasks />} />
                 <Route path="projects" element={<TeamProjects />} />
-                <Route path="projects/:id" element={<ProjectDetails />} />
+                <Route path="projects/:id" element={<MemberProjectDetails />} />
+                <Route path="team" element={<Team />} />
                 <Route path="progress" element={<MemberProgress />} />
                 <Route path="profile" element={<MemberProfile />} />
             </Route>

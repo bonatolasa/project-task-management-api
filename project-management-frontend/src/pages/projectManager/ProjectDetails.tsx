@@ -21,6 +21,7 @@ interface Project {
 interface Task {
     _id: string;
     title: string;
+    description?: string;
     status: string;
     priority: string;
     deadline: string;
@@ -274,7 +275,24 @@ const ProjectDetails: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', margin: '0 0 8px' }}>{project.name}</h1>
-                        {project.description && <p style={{ color: '#6b7280', marginBottom: 16 }}>{project.description}</p>}
+                        {project.description && (
+                            <p
+                                style={{
+                                    color: '#6b7280',
+                                    marginBottom: 16,
+                                    marginTop: 4,
+                                    // wrapping rules
+                                    overflowWrap: 'break-word',
+                                    wordWrap: 'break-word',
+                                    wordBreak: 'break-word',
+                                    whiteSpace: 'normal',
+                                    maxHeight: 240,
+                                    overflowY: 'auto',
+                                }}
+                            >
+                                {project.description}
+                            </p>
+                        )}
                     </div>
                     <span
                         style={{
@@ -352,6 +370,21 @@ const ProjectDetails: React.FC = () => {
                                             {task.priority}
                                         </span>
                                     </div>
+                                    {task.description && (
+                                        <p
+                                            style={{
+                                                fontSize: 14,
+                                                color: '#6b7280',
+                                                margin: '4px 0',
+                                                overflowWrap: 'break-word',
+                                                wordWrap: 'break-word',
+                                                wordBreak: 'break-word',
+                                                whiteSpace: 'normal',
+                                            }}
+                                        >
+                                            {task.description}
+                                        </p>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#6b7280' }}>
                                         <span>Assignee: {task.assignedTo && task.assignedTo.length > 0 ? task.assignedTo.map(a => a.name).join(', ') : 'Unassigned'}</span>
                                         <span

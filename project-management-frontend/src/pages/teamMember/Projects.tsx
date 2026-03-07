@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 
 interface Project {
-    _id: string;
+    id: string;
     name: string;
 }
 
@@ -23,7 +23,9 @@ const TeamProjects: React.FC = () => {
             const res = await api.get(`/projects/contributor/${user.id}`);
             const data = res.data || res;
             const projects = Array.isArray(data) ? data : data?.data || [];
-            setProjects(projects);
+            // ensure correct id field
+            const normalized = projects.map((p: any) => ({ id: p.id || p._id || '', name: p.name }));
+            setProjects(normalized);
         } catch (err) {
             console.error(err);
             toast.error('Failed to load your projects');
@@ -51,8 +53,8 @@ const TeamProjects: React.FC = () => {
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
                     {projects.map(p => (
-                        <div key={p._id} style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6', cursor: 'pointer' }}
-                            onClick={() => navigate(`/dashboard/projects/${p._id}`)}>
+                        <div key={p.id} style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6', cursor: 'pointer' }}
+                            onClick={() => navigate(`/dashboard/projects/${p.id}`)}>
                             <div style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>{p.name}</div>
                         </div>
                     ))}

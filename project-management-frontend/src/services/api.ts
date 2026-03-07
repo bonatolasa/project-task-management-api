@@ -128,12 +128,8 @@ const tasksApi = {
 
 const profileApi = {
   confirmPasswordAndUpdateProfile: async (currentPassword: string, profileData: Record<string, any>) => {
-    try {
-      await api.post('/auth/verify-password', { password: currentPassword });
-      return api.patch('/users/me', profileData);
-    } catch (err: any) {
-      return api.patch('/users/me', { ...profileData, currentPassword });
-    }
+    await api.post('/auth/verify-password', { password: currentPassword });
+    return api.patch('/users/me', profileData);
   },
 };
 

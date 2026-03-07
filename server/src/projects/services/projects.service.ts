@@ -21,12 +21,16 @@ export class ProjectsService {
 
   //create project services
   async create(createProjectDto: CreateProjectDto): Promise<ProjectResponseDto> {
-    // Validate that the team exists
-    try {
-      await this.teamsService.findById(createProjectDto.team);
-    } catch (error) {
+    // Validate that the team exists and get its members
+    const team = await this.teamsService.findById(createProjectDto.team);
+    if (!team) {
       throw new BadRequestException('Invalid team ID. Team does not exist.');
     }
+
+    // Set contributors to team member IDs (schema expects ObjectId refs)
+    const members = (team as any).members || [];
+    // members from TeamsService may be objects ({ id, name, email }) or mongoose docs
+    createProjectDto.contributors = members.map((m: any) => m.id || m._id || m);
 
     const createdProject = new this.projectModel(createProjectDto);
     const savedProject = await createdProject.save();
@@ -73,7 +77,7 @@ export class ProjectsService {
   async findById(id: string, user?: { id: string; role: string }): Promise<ProjectResponseDto> {
     const project = await this.projectModel
       .findById(id)
-      .populate('team', 'name')
+      .populate('team', 'name members')
       .populate('manager', 'name email')
       .populate('contributors', 'name email')
       .exec();
@@ -84,10 +88,10 @@ export class ProjectsService {
 
     // Check authorization for members
     if (user && user.role.toLowerCase() === 'member') {
-      const isContributor = project.contributors?.some(
-        contributor => contributor._id.toString() === user.id
+      const isInTeam = (project.team as any)?.members?.some(
+        (member: any) => member._id.toString() === user.id
       );
-      if (!isContributor) {
+      if (!isInTeam) {
         throw new ForbiddenException('You do not have permission to view this project');
       }
     }
@@ -153,8 +157,17 @@ export class ProjectsService {
   }
 
   async getProjectsByContributor(userId: string): Promise<ProjectResponseDto[]> {
+    // find all teams the user belongs to
+    const teams = await this.teamsService.getTeamsByMember(userId);
+    const teamIds = teams.map(t => t.id);
+
+    if (teamIds.length === 0) {
+      // user isn't part of any team – return empty array
+      return [];
+    }
+
     const projects = await this.projectModel
-      .find({ contributors: userId })
+      .find({ team: { $in: teamIds } })
       .populate('team', 'name')
       .populate('manager', 'name email')
       .populate('contributors', 'name email')

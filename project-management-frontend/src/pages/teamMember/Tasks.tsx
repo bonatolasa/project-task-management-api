@@ -200,14 +200,21 @@ const Tasks: React.FC = () => {
   // Update task status
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
-      await api.put(`/tasks/${id}`, { status: newStatus });
+      await api.patch(`/tasks/${id}`, { status: newStatus });
       toast.success('Status updated');
-      // Refresh tasks
-      const res = await getMyTasks();
-      const data = res.data || res;
-      setTasks(Array.isArray(data) ? data : data?.tasks || []);
-    } catch {
-      toast.error('Failed to update status');
+    } catch (err: any) {
+      console.error('status update error', err.response || err);
+      const msg = err.response?.data?.message || 'Failed to update status';
+      toast.error(msg);
+    } finally {
+      // in any case, refresh tasks so the UI matches server state
+      try {
+        const res = await getMyTasks();
+        const data = res.data || res;
+        setTasks(Array.isArray(data) ? data : data?.tasks || []);
+      } catch (err) {
+        console.error('error refreshing tasks after status change', err);
+      }
     }
   };
 
@@ -223,8 +230,10 @@ const Tasks: React.FC = () => {
             : task
         )
       );
-    } catch {
-      toast.error('Failed to update progress');
+    } catch (err: any) {
+      console.error('progress update error', err.response || err);
+      const msg = err.response?.data?.message || 'Failed to update progress';
+      toast.error(msg);
     }
   };
 

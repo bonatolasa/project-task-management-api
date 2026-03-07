@@ -102,14 +102,20 @@ export class TasksController {
   @Patch(':id')
   async update(
     @Param('id') id: string, 
-    @Body() updateTaskDto: UpdateTaskDto
+    @Body() updateTaskDto: UpdateTaskDto,
+    @CurrentUser() user: { id: string; role: string }
   ): Promise<SingleTaskResponseDto> {
-    const task = await this.tasksService.update(id, updateTaskDto);
-    return {
-      success: true,
-      data: task,
-      message: 'Task updated successfully',
-    };
+    try {
+      const task = await this.tasksService.update(id, updateTaskDto, user);
+      return {
+        success: true,
+        data: task,
+        message: 'Task updated successfully',
+      };
+    } catch (err) {
+      console.error('error in controller updating task', { id, updateTaskDto, error: err });
+      throw err;
+    }
   }
 
   @Roles(Role.MANAGER, Role.MEMBER)
@@ -119,8 +125,9 @@ export class TasksController {
   async updateViaPut(
     @Param('id') id: string,
     @Body() updateTaskDto: UpdateTaskDto,
+    @CurrentUser() user: { id: string; role: string },
   ): Promise<SingleTaskResponseDto> {
-    const task = await this.tasksService.update(id, updateTaskDto);
+    const task = await this.tasksService.update(id, updateTaskDto, user);
     return {
       success: true,
       data: task,

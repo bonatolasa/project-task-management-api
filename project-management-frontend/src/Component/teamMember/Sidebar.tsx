@@ -11,6 +11,7 @@ import {
     ChevronLeft,
     ChevronRight,
     FolderKanban,
+    Users,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,6 +23,7 @@ const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
     { to: '/dashboard/tasks', icon: ListTodo, label: 'My Tasks' },
     { to: '/dashboard/projects', icon: FolderKanban, label: 'Projects' },
+    { to: '/dashboard/team', icon: Users, label: 'My Team' },
     { to: '/dashboard/progress', icon: BarChart3, label: 'Progress' },
     { to: '/dashboard/profile', icon: User, label: 'Profile' },
 ];

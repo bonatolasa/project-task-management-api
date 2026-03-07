@@ -254,7 +254,24 @@ const Projects: React.FC = () => {
                                         {p.status?.replace(/[-_]/g, ' ')}
                                     </span>
                                 </div>
-                                {p.description && <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>{p.description}</p>}
+                                {p.description && (
+                                    <p
+                                        style={{
+                                            fontSize: 13,
+                                            color: '#6b7280',
+                                            margin: '0 0 12px',
+                                            lineHeight: 1.5,
+                                            overflowWrap: 'break-word',
+                                            wordWrap: 'break-word',
+                                            wordBreak: 'break-word',
+                                            whiteSpace: 'normal',
+                                            maxHeight: 100,
+                                            overflowY: 'auto',
+                                        }}
+                                    >
+                                        {p.description}
+                                    </p>
+                                )}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                                     <div style={{ flex: 1, height: 6, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
                                         <div style={{ width: `${p.progress || 0}%`, height: '100%', borderRadius: 3, background: 'linear-gradient(90deg, #0f5841, #1b7a5c)' }} />

@@ -109,60 +109,103 @@ export class TasksService {
     return this.mapToResponseDto(task);
   }
 
-  async update(id: string, updateTaskDto: UpdateTaskDto): Promise<TaskResponseDto> {
-    const beforeUpdate = await this.taskModel.findById(id).select('assignedTo title percentageComplete').populate('project', 'manager').exec();
-    
-    // If status is being updated to in_progress, set startedAt if not provided
-    if (updateTaskDto.status === 'in_progress' && !updateTaskDto.startedAt) {
-      updateTaskDto.startedAt = new Date();
+  async update(id: string, updateTaskDto: UpdateTaskDto, user?: { id: string; role: string }): Promise<TaskResponseDto> {
+    try {
+      const beforeUpdate = await this.taskModel.findById(id).select('assignedTo title percentageComplete').populate('project', 'manager').exec();
+      
+      // Permission check for members
+      if (user && user.role.toLowerCase() === 'member') {
+        const task = beforeUpdate;
+        if (!task) {
+          throw new NotFoundException(`Task with ID ${id} not found`);
+        }
+        const isAssigned = task.assignedTo?.some(
+          assignee => assignee.toString() === user.id
+        );
+        if (!isAssigned) {
+          throw new ForbiddenException('You can only update tasks assigned to you');
+        }
+      }
+      
+      // If percentageComplete is being updated, set status accordingly
+      if (updateTaskDto.percentageComplete !== undefined) {
+        if (updateTaskDto.percentageComplete === 0) {
+          updateTaskDto.status = TaskStatus.PENDING;
+        } else if (updateTaskDto.percentageComplete === 100) {
+          updateTaskDto.status = TaskStatus.COMPLETED;
+          updateTaskDto.completedAt = new Date();
+        } else if (updateTaskDto.percentageComplete > 0 && updateTaskDto.percentageComplete < 100) {
+          updateTaskDto.status = TaskStatus.IN_PROGRESS;
+          if (!updateTaskDto.startedAt) {
+            updateTaskDto.startedAt = new Date();
+          }
+        }
+      }
+      
+      // If status is being updated to in_progress, set startedAt if not provided
+      if (updateTaskDto.status === 'in_progress' && !updateTaskDto.startedAt) {
+        updateTaskDto.startedAt = new Date();
+      }
+
+      // If status is being updated to completed, set completedAt and percentageComplete to 100
+      if (updateTaskDto.status === 'completed') {
+        updateTaskDto.completedAt = new Date();
+        updateTaskDto.percentageComplete = 100;
+      }
+
+      const updatedTask = await this.taskModel
+        .findByIdAndUpdate(id, updateTaskDto, { new: true, runValidators: true })
+        .populate('project', 'name manager')
+        .populate('assignedTo', 'name email')
+        .populate('createdBy', 'name email')
+        .populate('dependencies', 'title')
+        .exec();
+
+      if (!updatedTask) {
+        throw new NotFoundException(`Task with ID ${id} not found`);
+      }
+
+      const previousAssignees = beforeUpdate?.assignedTo?.map(a => a.toString()) || [];
+      const nextAssignees = updatedTask.assignedTo?.map(a => a.toString()) || [];
+      const newAssignees = nextAssignees.filter(a => !previousAssignees.includes(a));
+
+      // send notifications but don't block on failures
+      try {
+        for (const assignee of newAssignees) {
+          await this.notificationsService.create({
+            userId: assignee,
+            title: 'Task Assignment Update',
+            message: `Task '${updatedTask.title}' has been assigned to you`,
+            type: 'task_assigned',
+            relatedId: updatedTask._id.toString(),
+          });
+        }
+      } catch (notifErr) {
+        console.error('failed to notify new assignees', notifErr);
+      }
+
+      try {
+        if (updateTaskDto.percentageComplete !== undefined && 
+            beforeUpdate?.percentageComplete !== updateTaskDto.percentageComplete &&
+            updatedTask.project && (updatedTask.project as any).manager) {
+          const managerId = (updatedTask.project as any).manager.toString();
+          await this.notificationsService.create({
+            userId: managerId,
+            title: 'Task Progress Update',
+            message: `Task '${updatedTask.title}' progress updated to ${updateTaskDto.percentageComplete}%`,
+            type: 'task_progress',
+            relatedId: updatedTask._id.toString(),
+          });
+        }
+      } catch (notifErr) {
+        console.error('failed to notify project manager', notifErr);
+      }
+
+      return this.mapToResponseDto(updatedTask);
+    } catch (err) {
+      console.error('Error in TasksService.update', { id, updateTaskDto, error: err });
+      throw err;
     }
-
-    // If status is being updated to completed, set completedAt and percentageComplete to 100
-    if (updateTaskDto.status === 'completed') {
-      updateTaskDto.completedAt = new Date();
-      updateTaskDto.percentageComplete = 100;
-    }
-
-    const updatedTask = await this.taskModel
-      .findByIdAndUpdate(id, updateTaskDto, { new: true, runValidators: true })
-      .populate('project', 'name manager')
-      .populate('assignedTo', 'name email')
-      .populate('createdBy', 'name email')
-      .populate('dependencies', 'title')
-      .exec();
-
-    if (!updatedTask) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
-    }
-
-    const previousAssignees = beforeUpdate?.assignedTo?.map(a => a.toString()) || [];
-    const nextAssignees = updatedTask.assignedTo?.map(a => a.toString()) || [];
-    const newAssignees = nextAssignees.filter(a => !previousAssignees.includes(a));
-    for (const assignee of newAssignees) {
-      await this.notificationsService.create({
-        userId: assignee,
-        title: 'Task Assignment Update',
-        message: `Task '${updatedTask.title}' has been assigned to you`,
-        type: 'task_assigned',
-        relatedId: updatedTask._id.toString(),
-      });
-    }
-
-    // Notify project manager when task progress is updated
-    if (updateTaskDto.percentageComplete !== undefined && 
-        beforeUpdate?.percentageComplete !== updateTaskDto.percentageComplete &&
-        updatedTask.project && (updatedTask.project as any).manager) {
-      const managerId = (updatedTask.project as any).manager.toString();
-      await this.notificationsService.create({
-        userId: managerId,
-        title: 'Task Progress Update',
-        message: `Task '${updatedTask.title}' progress updated to ${updateTaskDto.percentageComplete}%`,
-        type: 'task_progress',
-        relatedId: updatedTask._id.toString(),
-      });
-    }
-
-    return this.mapToResponseDto(updatedTask);
   }
 
   async remove(id: string): Promise<{ success: boolean; message: string }> {

@@ -34,7 +34,9 @@ const Profile: React.FC = () => {
             toast.success('Profile updated!');
             setCurrentPassword('');
         } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Failed to update');
+            console.error('profile update error', err.response || err);
+            const msg = err.response?.data?.message || 'Failed to update';
+            toast.error(msg);
         } finally { setSaving(false); }
     };
 

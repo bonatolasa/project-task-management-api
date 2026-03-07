@@ -1,5 +1,8 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { User } from 'src/users/schemas/users.schemas';
 import { UsersService } from 'src/users/services/users.service';
 import { LoginDto, RegisterDto } from '../dtos/auth.dto';
 import { AuthResponseDto } from '../responses/auth.response';
@@ -12,6 +15,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    @InjectModel(User.name) private userModel: Model<User>,
   ) { }
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
@@ -100,10 +104,12 @@ export class AuthService {
 
   async verifyPassword(userId: string, password: string): Promise<boolean> {
     try {
-      const user = await this.usersService.findByEmail((await this.usersService.getUserById(userId)).email);
-      if (!user) return false;
-      return bcrypt.compare(password, user.password);
+      const user = await this.usersService.findByIdWithPassword(userId);
+      if (!user || !user.password) return false;
+      const isValid = await bcrypt.compare(password, user.password);
+      return isValid;
     } catch (error) {
+      console.error('Error verifying password for user', userId, ':', error);
       return false;
     }
   }

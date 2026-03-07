@@ -65,6 +65,10 @@ export class UsersService {
     return this.mapToResponseDto(user);
   }
 
+  async findByIdWithPassword(id: string): Promise<User | null> {
+    return this.userModel.findById(id).exec();
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     return this.userModel.findOne({ email: email.toLowerCase() }).exec();
   }
