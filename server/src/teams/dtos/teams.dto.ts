@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsArray, IsMongoId, IsBoolean, ArrayMinSize } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsMongoId,
+  IsBoolean,
+  ArrayMinSize,
+} from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateTeamDto {
@@ -11,7 +18,7 @@ export class CreateTeamDto {
 
   @IsMongoId()
   @IsOptional()
-  manager: string
+  manager: string;
 
   @IsArray()
   @IsMongoId({ each: true })

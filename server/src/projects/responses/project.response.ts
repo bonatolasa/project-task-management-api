@@ -1,7 +1,11 @@
-import { ProjectContributorDto, ProjectManagerDto, ProjectTeamDto } from "../dtos/project.dto";
+import {
+  ProjectContributorDto,
+  ProjectManagerDto,
+  ProjectTeamDto,
+} from '../dtos/project.dto';
 
 export class ProjectResponseDto {
-  id: string;
+  _id: string;
   name: string;
   description?: string;
   team: ProjectTeamDto;

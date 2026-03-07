@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param,Delete,UseGuards,Query, Put 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  Put,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -6,7 +16,10 @@ import { TasksService } from '../services/tasks.service';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/enums/role.enum';
 import { CreateTaskDto, UpdateTaskDto } from '../dtos/tasks.dto';
-import { SingleTaskResponseDto, TaskListResponseDto } from '../responses/tasks.response';
+import {
+  SingleTaskResponseDto,
+  TaskListResponseDto,
+} from '../responses/tasks.response';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 @Controller('tasks')
@@ -20,20 +33,23 @@ export class TasksController {
   async getMyTasks(@CurrentUser() user: any) {
     return this.tasksService.getMyTasks(user.id);
   }
-  
+
   @Roles(Role.MEMBER, Role.MANAGER, Role.ADMIN) // optional restriction
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('due-soon')
-  async getTasksDueSoon(@Query('days') days?: number):      Promise<TaskListResponseDto> {
-    const tasks = await this.tasksService.getTasksDueSoon(days ? Number(days) : 3);
+  async getTasksDueSoon(
+    @Query('days') days?: number,
+  ): Promise<TaskListResponseDto> {
+    const tasks = await this.tasksService.getTasksDueSoon(
+      days ? Number(days) : 3,
+    );
     return {
       success: true,
       data: tasks,
       message: 'Tasks due soon retrieved',
     };
   }
-  
 
   @Roles(Role.MANAGER)
   @UseGuards(RolesGuard)
@@ -51,14 +67,14 @@ export class TasksController {
       message: 'Task created successfully',
     };
   }
-  
+
   @Roles(Role.MANAGER, Role.ADMIN, Role.MEMBER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get()
   async findAll(
     @Query('projectId') projectId?: string,
-    @CurrentUser() user?: { id: string; role: string }
+    @CurrentUser() user?: { id: string; role: string },
   ): Promise<TaskListResponseDto> {
     const tasks = projectId
       ? await this.tasksService.findByProject(projectId, user)
@@ -70,7 +86,7 @@ export class TasksController {
     };
   }
 
-  @Roles(Role.ADMIN, Role.MANAGER,Role.MEMBER )
+  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('overdue')
@@ -83,7 +99,7 @@ export class TasksController {
     };
   }
 
-  @Roles(Role.MANAGER)
+  @Roles(Role.MANAGER, Role.MEMBER, Role.ADMIN)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get(':id')
@@ -101,9 +117,9 @@ export class TasksController {
   @JwtAuthGuard()
   @Patch(':id')
   async update(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() updateTaskDto: UpdateTaskDto,
-    @CurrentUser() user: { id: string; role: string }
+    @CurrentUser() user: { id: string; role: string },
   ): Promise<SingleTaskResponseDto> {
     try {
       const task = await this.tasksService.update(id, updateTaskDto, user);
@@ -113,7 +129,11 @@ export class TasksController {
         message: 'Task updated successfully',
       };
     } catch (err) {
-      console.error('error in controller updating task', { id, updateTaskDto, error: err });
+      console.error('error in controller updating task', {
+        id,
+        updateTaskDto,
+        error: err,
+      });
       throw err;
     }
   }
@@ -139,7 +159,9 @@ export class TasksController {
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<{ success: boolean; message: string }> {
+  async remove(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean; message: string }> {
     return await this.tasksService.remove(id);
   }
 
@@ -147,7 +169,9 @@ export class TasksController {
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('project/:projectId')
-  async getTasksByProject(@Param('projectId') projectId: string): Promise<TaskListResponseDto> {
+  async getTasksByProject(
+    @Param('projectId') projectId: string,
+  ): Promise<TaskListResponseDto> {
     const tasks = await this.tasksService.getTasksByProject(projectId);
     return {
       success: true,
@@ -160,7 +184,9 @@ export class TasksController {
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('user/:userId')
-  async getTasksByUser(@Param('userId') userId: string): Promise<TaskListResponseDto> {
+  async getTasksByUser(
+    @Param('userId') userId: string,
+  ): Promise<TaskListResponseDto> {
     const tasks = await this.tasksService.getTasksByUser(userId);
     return {
       success: true,
@@ -169,12 +195,13 @@ export class TasksController {
     };
   }
 
-
-  @Roles(Role.ADMIN,Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('creator/:userId')
-  async getTasksByCreator(@Param('userId') userId: string): Promise<TaskListResponseDto> {
+  async getTasksByCreator(
+    @Param('userId') userId: string,
+  ): Promise<TaskListResponseDto> {
     const tasks = await this.tasksService.getTasksByCreator(userId);
     return {
       success: true,
@@ -191,7 +218,10 @@ export class TasksController {
     @Param('id') id: string,
     @Body('percentageComplete') percentageComplete: number,
   ): Promise<SingleTaskResponseDto> {
-    const task = await this.tasksService.updateTaskProgress(id, percentageComplete);
+    const task = await this.tasksService.updateTaskProgress(
+      id,
+      percentageComplete,
+    );
     return {
       success: true,
       data: task,
@@ -214,7 +244,7 @@ export class TasksController {
       message: 'Dependency added successfully',
     };
   }
-  
+
   @Roles(Role.ADMIN, Role.MANAGER)
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
@@ -231,17 +261,16 @@ export class TasksController {
     };
   }
 
-   @Roles(Role.ADMIN, Role.MANAGER)
-   @UseGuards(RolesGuard)
-   @JwtAuthGuard()
-   @Get('statistics/:projectId')
-    async getTaskStatistics(@Param('projectId') projectId: string): Promise<any> {
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @UseGuards(RolesGuard)
+  @JwtAuthGuard()
+  @Get('statistics/:projectId')
+  async getTaskStatistics(@Param('projectId') projectId: string): Promise<any> {
     const statistics = await this.tasksService.getTaskStatistics(projectId);
     return {
-    success: true,
-    data: statistics,
-    message: 'Task statistics retrieved',
+      success: true,
+      data: statistics,
+      message: 'Task statistics retrieved',
     };
   }
-
 }

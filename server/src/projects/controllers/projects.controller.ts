@@ -1,5 +1,13 @@
 import {
-  Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, InternalServerErrorException
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -8,14 +16,16 @@ import { ProjectsService } from '../services/projects.service';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/enums/role.enum';
 import { CreateProjectDto, UpdateProjectDto } from '../dtos/project.dto';
-import { ProjectListResponseDto, SingleProjectResponseDto } from '../responses/project.response';
+import {
+  ProjectListResponseDto,
+  SingleProjectResponseDto,
+} from '../responses/project.response';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-
 
 // @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) { }
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @Roles(Role.MANAGER)
   @UseGuards(RolesGuard)
@@ -37,7 +47,7 @@ export class ProjectsController {
     } catch (err) {
       // Log the error for debugging and return a generic 500 message
       // The stack will appear in the server console
-      // eslint-disable-next-line no-console
+
       console.error('Error in ProjectsController.create:', err);
       throw new InternalServerErrorException('Failed to create project');
     }
@@ -62,7 +72,7 @@ export class ProjectsController {
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() updateProjectDto: UpdateProjectDto
+    @Body() updateProjectDto: UpdateProjectDto,
   ): Promise<SingleProjectResponseDto> {
     const project = await this.projectsService.update(id, updateProjectDto);
     return {
@@ -76,7 +86,9 @@ export class ProjectsController {
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<{ success: boolean; message: string }> {
+  async remove(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean; message: string }> {
     return await this.projectsService.remove(id);
   }
 
@@ -84,7 +96,9 @@ export class ProjectsController {
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('team/:teamId')
-  async getProjectsByTeam(@Param('teamId') teamId: string): Promise<ProjectListResponseDto> {
+  async getProjectsByTeam(
+    @Param('teamId') teamId: string,
+  ): Promise<ProjectListResponseDto> {
     const projects = await this.projectsService.getProjectsByTeam(teamId);
     return {
       success: true,
@@ -97,7 +111,9 @@ export class ProjectsController {
   @UseGuards(RolesGuard)
   @JwtAuthGuard()
   @Get('manager/:managerId')
-  async getProjectsByManager(@Param('managerId') managerId: string): Promise<ProjectListResponseDto> {
+  async getProjectsByManager(
+    @Param('managerId') managerId: string,
+  ): Promise<ProjectListResponseDto> {
     const projects = await this.projectsService.getProjectsByManager(managerId);
     return {
       success: true,
@@ -112,13 +128,14 @@ export class ProjectsController {
   @Get('contributor/:userId')
   async getProjectsByContributor(
     @Param('userId') userId: string,
-    @CurrentUser() user: { id: string; role: string }
+    @CurrentUser() user: { id: string; role: string },
   ): Promise<ProjectListResponseDto> {
     // Members can only see their own projects
     if (user.role.toLowerCase() === 'member' && user.id !== userId) {
       throw new ForbiddenException('You can only view your own projects');
     }
-    const projects = await this.projectsService.getProjectsByContributor(userId);
+    const projects =
+      await this.projectsService.getProjectsByContributor(userId);
     return {
       success: true,
       data: projects,
@@ -134,7 +151,10 @@ export class ProjectsController {
     @Param('projectId') projectId: string,
     @Param('userId') userId: string,
   ): Promise<SingleProjectResponseDto> {
-    const project = await this.projectsService.addContributor(projectId, userId);
+    const project = await this.projectsService.addContributor(
+      projectId,
+      userId,
+    );
     return {
       success: true,
       data: project,
@@ -150,7 +170,10 @@ export class ProjectsController {
     @Param('projectId') projectId: string,
     @Param('userId') userId: string,
   ): Promise<SingleProjectResponseDto> {
-    const project = await this.projectsService.removeContributor(projectId, userId);
+    const project = await this.projectsService.removeContributor(
+      projectId,
+      userId,
+    );
     return {
       success: true,
       data: project,
@@ -189,7 +212,7 @@ export class ProjectsController {
   @Get(':id')
   async findOne(
     @Param('id') id: string,
-    @CurrentUser() user: { id: string; role: string }
+    @CurrentUser() user: { id: string; role: string },
   ): Promise<SingleProjectResponseDto> {
     const project = await this.projectsService.findById(id, user);
     return {

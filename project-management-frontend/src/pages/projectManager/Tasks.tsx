@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
@@ -35,6 +36,7 @@ interface ProjectOption {
 const getTaskId = (task: Task) => task.id || task._id || '';
 
 const Tasks: React.FC = () => {
+    const navigate = useNavigate();
     const user = useSelector((state: RootState) => state.auth.user);
     const userAny = user as unknown as { id?: string; _id?: string } | null;
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -579,10 +581,10 @@ const Tasks: React.FC = () => {
                                         </td>
                                         <td style={{ padding: '14px 16px' }}>
                                             <button
-                                                onClick={() => loadTaskCollaboration(taskId)}
+                                                onClick={() => navigate(`/manager/tasks/${taskId}`)}
                                                 style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: 6, padding: '6px 10px', cursor: 'pointer' }}
                                             >
-                                                Open
+                                                Details
                                             </button>
                                         </td>
                                     </tr>

@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getMyTasks } from '../../services/dashboardService';
 import api from '../../services/api';
-import { Search, ListTodo, Clock, CheckCircle2, X } from 'lucide-react';
+import { Search, ListTodo, Clock, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { collaborationService } from '../../services/collaborationService';
-import type { AttachmentItem, CommentItem } from '../../types/collaboration';
 import { useNavigate } from 'react-router-dom';
+import { MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import TaskCollaboration from '../../components/TaskCollaboration';
 
 interface Task {
   _id: string;
@@ -50,25 +50,6 @@ const styles = {
     cursor: 'pointer',
   }),
   emptyState: { padding: 40, textAlign: 'center' as const, color: '#9ca3af', background: '#fff', borderRadius: 16 },
-  panel: {
-    marginTop: 20,
-    background: '#fff',
-    border: '1px solid #f3f4f6',
-    borderRadius: 12,
-    padding: 16,
-    position: 'relative' as const,
-  },
-  panelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  closeButton: { background: 'none', border: 'none', cursor: 'pointer', padding: 4 },
-  panelGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
-  commentsBox: { maxHeight: 180, overflowY: 'auto' as const, border: '1px solid #f3f4f6', borderRadius: 8, padding: 8 },
-  commentItem: { padding: '6px 0', borderBottom: '1px solid #f3f4f6' },
-  commentMeta: { fontSize: 12, color: '#6b7280' },
-  commentText: { fontSize: 13 },
-  input: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 14, outline: 'none' },
-  btnPrimary: { padding: '10px 20px', borderRadius: 10, border: 'none', background: '#0f5841', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
-  btnDanger: { border: 'none', background: '#fee2e2', color: '#dc2626', borderRadius: 6, padding: '4px 8px', cursor: 'pointer' },
-  attachmentLink: { color: '#2563eb', textDecoration: 'none' },
   progressContainer: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
   progressBar: { flex: 1, height: 5, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' },
   progressFill: (width: number) => ({ width: `${width}%`, height: '100%', borderRadius: 3, background: '#334155' }),
@@ -110,11 +91,7 @@ const Tasks: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [comments, setComments] = useState<CommentItem[]>([]);
-  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
-  const [commentInput, setCommentInput] = useState('');
-  const [panelLoading, setPanelLoading] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Fetch tasks on mount
@@ -134,68 +111,6 @@ const Tasks: React.FC = () => {
     fetchTasks();
   }, []);
 
-  // Load collaboration data for selected task
-  const loadTaskCollaboration = useCallback(async (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setPanelLoading(true);
-    try {
-      const [commentsData, attachmentsData] = await Promise.all([
-        collaborationService.getTaskComments(taskId),
-        collaborationService.getTaskAttachments(taskId),
-      ]);
-      setComments(commentsData);
-      setAttachments(attachmentsData);
-    } catch (error) {
-      toast.error('Failed to load collaboration data');
-      console.error(error);
-    } finally {
-      setPanelLoading(false);
-    }
-  }, []);
-
-  // Close collaboration panel
-  const closePanel = () => {
-    setSelectedTaskId(null);
-    setComments([]);
-    setAttachments([]);
-    setCommentInput('');
-  };
-
-  // Add comment
-  const handleAddComment = async () => {
-    if (!selectedTaskId || !commentInput.trim()) return;
-    try {
-      await collaborationService.addTaskComment(selectedTaskId, commentInput.trim());
-      setCommentInput('');
-      await loadTaskCollaboration(selectedTaskId); // refresh
-      toast.success('Comment added');
-    } catch (error) {
-      toast.error('Failed to add comment');
-    }
-  };
-
-  // Upload attachment
-  const handleUploadAttachment = async (file: File | null) => {
-    if (!selectedTaskId || !file) return;
-    try {
-      await collaborationService.uploadTaskAttachment(selectedTaskId, file);
-      await loadTaskCollaboration(selectedTaskId);
-      toast.success('Attachment uploaded');
-    } catch (error) {
-      toast.error('Failed to upload attachment');
-    }
-  };
-
-  // Delete attachment
-  const handleDeleteAttachment = async (attachmentId: string) => {
-    try {
-      await collaborationService.deleteAttachment(attachmentId);
-      await loadTaskCollaboration(selectedTaskId!);
-      toast.success('Attachment deleted');
-    } catch (error) {
-      toast.error('Failed to delete attachment');
-    }
-  };
 
   // Update task status
   const handleStatusChange = async (id: string, newStatus: string) => {
@@ -294,11 +209,16 @@ const Tasks: React.FC = () => {
                 onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateX(4px)')}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateX(0)')}
               >
-                {/* Task Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}
+                  onClick={() => setExpandedTaskId(expandedTaskId === task._id ? null : task._id)}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <button
-                      onClick={() => handleStatusChange(task._id, task.status === 'completed' ? 'pending' : 'completed')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(task._id, task.status === 'completed' ? 'pending' : 'completed');
+                      }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
                     >
                       <CheckCircle2
@@ -315,7 +235,10 @@ const Tasks: React.FC = () => {
                         textDecoration: task.status === 'completed' ? 'line-through' : 'none',
                         cursor: 'pointer',
                       }}
-                      onClick={() => loadTaskCollaboration(task._id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/dashboard/tasks/${task._id}`);
+                      }}
                     >
                       {task.title}
                     </span>
@@ -336,6 +259,7 @@ const Tasks: React.FC = () => {
                     </span>
                     <select
                       value={task.status}
+                      onClick={(e) => e.stopPropagation()}
                       onChange={(e) => handleStatusChange(task._id, e.target.value)}
                       style={{
                         padding: '2px 8px',
@@ -371,6 +295,7 @@ const Tasks: React.FC = () => {
                       min={0}
                       max={100}
                       step={5}
+                      onClick={(e) => e.stopPropagation()}
                       value={task.percentageComplete ?? task.progress ?? 0}
                       onChange={(e) => handleProgressChange(task._id, Number(e.target.value))}
                       style={styles.progressRange}
@@ -379,110 +304,64 @@ const Tasks: React.FC = () => {
                 )}
 
                 {/* Metadata */}
-                <div style={{ ...styles.metaInfo, color: isOverdue ? '#ef4444' : '#9ca3af' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={12} /> {formatDate(task.deadline)}
-                  </span>
-                  {task.project?.name && (
-                    <span
-                      onClick={() => task.project?._id && navigate(`/dashboard/projects/${task.project._id}`)}
-                      style={styles.projectLink}
-                    >
-                      • {task.project.name}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: isOverdue ? '#ef4444' : '#9ca3af' }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={12} /> {formatDate(task.deadline)}
                     </span>
-                  )}
+                    {task.project?.name && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          task.project?._id && navigate(`/dashboard/projects/${task.project._id}`);
+                        }}
+                        style={styles.projectLink}
+                      >
+                        • {task.project.name}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedTaskId(expandedTaskId === task._id ? null : task._id);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: expandedTaskId === task._id ? '#f3f4f6' : 'transparent',
+                      border: '1px solid #e5e7eb',
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#374151',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <MessageSquare size={14} />
+                    {expandedTaskId === task._id ? 'Close' : 'Collaborate'}
+                    {expandedTaskId === task._id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
                 </div>
+
+                {/* Collaboration Section */}
+                {expandedTaskId === task._id && (
+                  <div
+                    style={{ marginTop: 16, borderTop: '1px dashed #e5e7eb', paddingTop: 16 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <TaskCollaboration taskId={task._id} />
+                  </div>
+                )}
               </div>
             );
           })
         )}
       </div>
 
-      {/* Collaboration Panel (shown when a task is selected) */}
-      {selectedTaskId && (
-        <div style={styles.panel}>
-          <div style={styles.panelHeader}>
-            <h3 style={{ margin: 0 }}>Task Collaboration</h3>
-            <button onClick={closePanel} style={styles.closeButton}>
-              <X size={18} />
-            </button>
-          </div>
-
-          {panelLoading ? (
-            <div style={{ textAlign: 'center', padding: 20 }}>Loading...</div>
-          ) : (
-            <div style={styles.panelGrid}>
-              {/* Comments Section */}
-              <div>
-                <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>Comments</h4>
-                <div style={styles.commentsBox}>
-                  {comments.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#9ca3af' }}>No comments yet</p>
-                  ) : (
-                    comments.map((c) => (
-                      <div key={c._id} style={styles.commentItem}>
-                        <div style={styles.commentMeta}>
-                          {c.userId?.name || 'User'} • {new Date(c.createdAt).toLocaleString()}
-                        </div>
-                        <div style={styles.commentText}>{c.message}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <input
-                    value={commentInput}
-                    onChange={(e) => setCommentInput(e.target.value)}
-                    placeholder="Add comment..."
-                    style={styles.input}
-                  />
-                  <button onClick={handleAddComment} style={styles.btnPrimary}>
-                    Post
-                  </button>
-                </div>
-              </div>
-
-              {/* Attachments Section */}
-              <div>
-                <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>Attachments</h4>
-                <input
-                  type="file"
-                  onChange={(e) => handleUploadAttachment(e.target.files?.[0] || null)}
-                />
-                <div style={{ marginTop: 8, maxHeight: 180, overflowY: 'auto' as const }}>
-                  {attachments.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#9ca3af' }}>No attachments</p>
-                  ) : (
-                    attachments.map((a) => {
-                      // Build full attachment URL (adjust if needed)
-                      const baseUrl = (api.defaults.baseURL || '').replace(/\/api\/?$/, '');
-                      const fileUrl = a.fileUrl.startsWith('http')
-                        ? a.fileUrl
-                        : `${baseUrl}${a.fileUrl}`;
-                      return (
-                        <div
-                          key={a._id}
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}
-                        >
-                          <a href={fileUrl} target="_blank" rel="noreferrer" style={styles.attachmentLink}>
-                            {a.fileName}
-                          </a>
-                          <button
-                            onClick={() => handleDeleteAttachment(a._id)}
-                            style={styles.btnDanger}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

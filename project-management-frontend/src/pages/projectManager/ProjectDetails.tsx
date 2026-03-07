@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
-import { ArrowLeft, Clock, Users, ListTodo } from 'lucide-react';
+import { ArrowLeft, Clock, Users, ListTodo, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { normalizeRole } from '../../utils/auth';
 
@@ -294,19 +294,39 @@ const ProjectDetails: React.FC = () => {
                             </p>
                         )}
                     </div>
-                    <span
-                        style={{
-                            padding: '4px 12px',
-                            borderRadius: 20,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: '#fff',
-                            background: getStatusColor(project.status),
-                            textTransform: 'capitalize',
-                        }}
-                    >
-                        {project.status?.replace(/[-_]/g, ' ')}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span
+                            style={{
+                                padding: '4px 12px',
+                                borderRadius: 20,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: '#fff',
+                                background: getStatusColor(project.status),
+                                textTransform: 'capitalize',
+                            }}
+                        >
+                            {project.status?.replace(/[-_]/g, ' ')}
+                        </span>
+                        <button
+                            onClick={() => navigate(`/manager/projects/edit/${id}`)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '4px 12px',
+                                borderRadius: 20,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                background: '#f3f4f6',
+                                color: '#374151',
+                                border: '1px solid #e5e7eb',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <Pencil size={12} /> Edit
+                        </button>
+                    </div>
                 </div>
                 <div style={{ display: 'flex', gap: 24, marginTop: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -355,7 +375,12 @@ const ProjectDetails: React.FC = () => {
                             tasks.map((task) => (
                                 <div key={task._id} style={{ padding: '12px 0', borderBottom: '1px solid #f9fafb' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                        <span style={{ fontWeight: 600, color: '#111827' }}>{task.title}</span>
+                                        <span
+                                            onClick={() => navigate(`/manager/tasks/${task._id}`)}
+                                            style={{ fontWeight: 600, color: '#0f5841', cursor: 'pointer', textDecoration: 'underline' }}
+                                        >
+                                            {task.title}
+                                        </span>
                                         <span
                                             style={{
                                                 padding: '2px 8px',

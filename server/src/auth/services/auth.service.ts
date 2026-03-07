@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -9,14 +13,13 @@ import { AuthResponseDto } from '../responses/auth.response';
 import * as bcrypt from 'bcryptjs';
 import { CommonUtils } from 'src/commons/utils';
 
-
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     @InjectModel(User.name) private userModel: Model<User>,
-  ) { }
+  ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     // Check if user already exists
@@ -56,7 +59,10 @@ export class AuthService {
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -73,7 +79,7 @@ export class AuthService {
     const JwtLoginData = {
       sub: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
     };
     const accessToken = CommonUtils.generateJwtToken(JwtLoginData);
 

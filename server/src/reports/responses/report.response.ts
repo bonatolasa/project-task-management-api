@@ -1,4 +1,10 @@
-import { DashboardStatsDto, ProjectPerformanceDto, StatusDistributionDto, TeamPerformanceDto, UserPerformanceDto } from "../dto/report.dto";
+import {
+  DashboardStatsDto,
+  ProjectPerformanceDto,
+  StatusDistributionDto,
+  TeamPerformanceDto,
+  UserPerformanceDto,
+} from '../dto/report.dto';
 
 export class DashboardStatsResponseDto {
   success: boolean;

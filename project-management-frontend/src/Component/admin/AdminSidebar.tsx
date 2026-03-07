@@ -9,7 +9,7 @@ import {
     UsersRound,
     BarChart3,
     Activity,
-    Settings,
+    Settings, User,
     LogOut,
     ChevronLeft,
     ChevronRight,
@@ -28,6 +28,7 @@ const navItems = [
     { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
     { to: '/admin/activities', icon: Activity, label: 'Activities' },
     { to: '/admin/settings', icon: Settings, label: 'Settings' },
+    { to: '/admin/profile', icon: User, label: 'Profile' },
 ];
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed, onToggle }) => {

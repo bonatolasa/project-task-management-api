@@ -23,7 +23,9 @@ import ManagerTasks from './pages/projectManager/Tasks';
 import ManagerReports from './pages/projectManager/Reports';
 import ManagerSettings from './pages/projectManager/Settings';
 import ActivityLogPage from './pages/common/ActivityLogPage';
-import ProjectDetails from './pages/projectManager/ProjectDetails'; // <-- import new component
+import ProjectDetails from './pages/projectManager/ProjectDetails';
+import EditProject from './pages/projectManager/EditProject';
+import TaskDetails from './pages/projectManager/TaskDetails';
 
 // Team Member
 import { TeamMemberLayout } from './Component/teamMember/TeamMemberLayout';
@@ -35,6 +37,7 @@ import MemberProfile from './pages/teamMember/Profile';
 import TeamProjects from './pages/teamMember/Projects';
 import Team from './pages/teamMember/Team';
 import MemberProjectDetails from './pages/teamMember/ProjectDetails';
+import MemberTaskDetails from './pages/teamMember/TaskDetails';
 import { normalizeRole } from './utils/auth';
 
 /** Redirect unauthenticated users to /login */
@@ -78,6 +81,7 @@ export const AppRoutes: React.FC = () => {
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="activities" element={<ActivityLogPage />} />
                 <Route path="settings" element={<AdminSettings />} />
+                <Route path="profile" element={<MemberProfile />} />
             </Route>
 
             {/* ═══ Project Manager Routes ═══ */}
@@ -93,10 +97,13 @@ export const AppRoutes: React.FC = () => {
                 <Route path="projects" element={<ManagerProjects />} />
                 {/* 👇 New route for project details */}
                 <Route path="projects/:id" element={<ProjectDetails />} />
+                <Route path="projects/edit/:id" element={<EditProject />} />
                 <Route path="tasks" element={<ManagerTasks />} />
+                <Route path="tasks/:id" element={<TaskDetails />} />
                 <Route path="reports" element={<ManagerReports />} />
                 <Route path="activities" element={<ActivityLogPage />} />
                 <Route path="settings" element={<ManagerSettings />} />
+                <Route path="profile" element={<MemberProfile />} />
             </Route>
 
             {/* ═══ Team Member Routes ═══ */}
@@ -110,6 +117,7 @@ export const AppRoutes: React.FC = () => {
             >
                 <Route index element={<Dashboard />} />
                 <Route path="tasks" element={<MemberTasks />} />
+                <Route path="tasks/:id" element={<MemberTaskDetails />} />
                 <Route path="projects" element={<TeamProjects />} />
                 <Route path="projects/:id" element={<MemberProjectDetails />} />
                 <Route path="team" element={<Team />} />

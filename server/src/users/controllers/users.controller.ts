@@ -8,27 +8,32 @@ import {
   Delete,
   UseGuards,
   Query,
-  Req
+  Req,
 } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
-import { SingleUserResponseDto, UserListResponseDto, GenericListResponseDto } from '../responses/users.response';
+import {
+  SingleUserResponseDto,
+  UserListResponseDto,
+  GenericListResponseDto,
+} from '../responses/users.response';
 import { CreateUserDto, UpdateUserDto } from '../dtos/users.dto';
 import { User } from '../schemas/users.schemas';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
-
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
-  @UseGuards(JwtAuthGuard)
+  @JwtAuthGuard()
   @Get('me')
-  async getMe(@CurrentUser() user: { id: string }): Promise<SingleUserResponseDto> {
+  async getMe(
+    @CurrentUser() user: { id: string },
+  ): Promise<SingleUserResponseDto> {
     return this.getUserById(user.id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @JwtAuthGuard()
   @Get('managers/stats')
   async getManagerStats(): Promise<GenericListResponseDto<any>> {
     const stats = await this.usersService.getManagerStats();
@@ -39,17 +44,19 @@ export class UsersController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @JwtAuthGuard()
   @Patch('me')
   async updateMe(
     @CurrentUser() user: { id: string },
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
   ): Promise<SingleUserResponseDto> {
     return this.updateUser(user.id, updateUserDto);
   }
 
   @Post()
-  async createUsers(@Body() createUserDto: CreateUserDto): Promise<SingleUserResponseDto> {
+  async createUsers(
+    @Body() createUserDto: CreateUserDto,
+  ): Promise<SingleUserResponseDto> {
     const user = await this.usersService.createUsers(createUserDto);
     return {
       success: true,
@@ -81,7 +88,7 @@ export class UsersController {
   @Patch(':id')
   async updateUser(
     @Param('id') id: string,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
   ): Promise<SingleUserResponseDto> {
     const user = await this.usersService.updateUser(id, updateUserDto);
     return {
@@ -92,12 +99,16 @@ export class UsersController {
   }
 
   @Delete(':id')
-  async removeUser(@Param('id') id: string): Promise<{ success: boolean; message: string }> {
+  async removeUser(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean; message: string }> {
     return await this.usersService.removeUser(id);
   }
 
   @Get('role/:role')
-  async getUsersByRole(@Param('role') role: string): Promise<UserListResponseDto> {
+  async getUsersByRole(
+    @Param('role') role: string,
+  ): Promise<UserListResponseDto> {
     const users = await this.usersService.getUsersByRole(role);
     return {
       success: true,
@@ -107,7 +118,9 @@ export class UsersController {
   }
 
   @Get('team/:teamId')
-  async getUsersByTeam(@Param('teamId') teamId: string): Promise<UserListResponseDto> {
+  async getUsersByTeam(
+    @Param('teamId') teamId: string,
+  ): Promise<UserListResponseDto> {
     const users = await this.usersService.getUsersByTeam(teamId);
     return {
       success: true,

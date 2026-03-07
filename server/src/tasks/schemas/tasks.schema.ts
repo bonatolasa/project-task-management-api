@@ -50,8 +50,8 @@ export class Task extends Document {
   @Prop()
   comments: string;
 
-  @Prop() createdAt:Date;
-  @Prop() updatedAt:Date;
+  @Prop() createdAt: Date;
+  @Prop() updatedAt: Date;
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

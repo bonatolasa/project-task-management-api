@@ -1,4 +1,14 @@
-import { IsString, IsDate, IsEnum, IsMongoId, IsOptional, Min, Max, IsNumber, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsDate,
+  IsEnum,
+  IsMongoId,
+  IsOptional,
+  Min,
+  Max,
+  IsNumber,
+  IsArray,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { TaskStatus } from '../../enums/task-status.enum';
 import { Priority } from '../../enums/priority.enum';

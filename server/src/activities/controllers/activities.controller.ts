@@ -7,19 +7,18 @@ import { ActivitiesService } from '../services/activities.service';
 
 @Controller('activities')
 export class ActivitiesController {
-    constructor(private readonly activitiesService: ActivitiesService) { }
+  constructor(private readonly activitiesService: ActivitiesService) {}
 
-    @Roles(Role.ADMIN, Role.MANAGER)
-    @UseGuards(RolesGuard)
-    @JwtAuthGuard()
-    @Get()
-    async findAll(@Query('actionType') actionType?: string) {
-        const activities = await this.activitiesService.getAll(actionType);
-        return {
-            success: true,
-            message: 'Activities fetched successfully',
-            data: activities,
-        };
-    }
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @UseGuards(RolesGuard)
+  @JwtAuthGuard()
+  @Get()
+  async findAll(@Query('actionType') actionType?: string) {
+    const activities = await this.activitiesService.getAll(actionType);
+    return {
+      success: true,
+      message: 'Activities fetched successfully',
+      data: activities,
+    };
+  }
 }
-

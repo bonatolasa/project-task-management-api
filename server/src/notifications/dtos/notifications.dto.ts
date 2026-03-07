@@ -1,24 +1,23 @@
 import { IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator';
 
 export class CreateNotificationDto {
-    @IsMongoId()
-    userId: string;
+  @IsMongoId()
+  userId: string;
 
-    @IsString()
-    title: string;
+  @IsString()
+  title: string;
 
-    @IsString()
-    message: string;
+  @IsString()
+  message: string;
 
-    @IsString()
-    type: string;
+  @IsString()
+  type: string;
 
-    @IsString()
-    @IsOptional()
-    relatedId?: string;
+  @IsString()
+  @IsOptional()
+  relatedId?: string;
 
-    @IsBoolean()
-    @IsOptional()
-    readStatus?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  readStatus?: boolean;
 }
-

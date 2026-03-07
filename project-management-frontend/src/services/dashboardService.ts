@@ -22,6 +22,11 @@ export const getManagerProjects = async (managerId: string) => {
     return response.data;
 };
 
+export const getManagerDashboardStats = async () => {
+    const response = await api.get('/reports/manager-dashboard');
+    return response.data;
+};
+
 export const getTeamPerformance = async (teamId: string) => {
     const response = await api.get(`/reports/team-performance/${teamId}`);
     return response.data;

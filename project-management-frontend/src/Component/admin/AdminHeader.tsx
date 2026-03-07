@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
 import { Search } from 'lucide-react';
@@ -53,7 +54,7 @@ export const AdminHeader: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                 <NotificationBell accentColor="#194f87" />
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Link to="/admin/profile" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
                     <div
                         style={{
                             width: 36,
@@ -76,7 +77,7 @@ export const AdminHeader: React.FC = () => {
                         </div>
                         <div style={{ fontSize: 11, color: '#9ca3af' }}>Administrator</div>
                     </div>
-                </div>
+                </Link>
             </div>
         </header>
     );

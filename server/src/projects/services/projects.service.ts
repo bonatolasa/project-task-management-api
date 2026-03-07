@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Project } from '../schemas/project.schema';
@@ -8,7 +13,6 @@ import { CreateProjectDto, UpdateProjectDto } from '../dtos/project.dto';
 import { ProjectResponseDto } from '../responses/project.response';
 import { ProjectStatus } from 'src/enums/project-status.enum';
 import { NotificationsService } from 'src/notifications/services/notifications.service';
-
 
 @Injectable()
 export class ProjectsService {
@@ -20,7 +24,9 @@ export class ProjectsService {
   ) { }
 
   //create project services
-  async create(createProjectDto: CreateProjectDto): Promise<ProjectResponseDto> {
+  async create(
+    createProjectDto: CreateProjectDto,
+  ): Promise<ProjectResponseDto> {
     // Validate that the team exists and get its members
     const team = await this.teamsService.findById(createProjectDto.team);
     if (!team) {
@@ -52,7 +58,7 @@ export class ProjectsService {
             title: 'New Project in Team',
             message: `A new project "${project.name}" has been assigned to your team.`,
             type: 'project_assignment',
-            relatedId: project._id.toString()
+            relatedId: project._id.toString(),
           });
         }
       }
@@ -70,14 +76,26 @@ export class ProjectsService {
       .populate('contributors', 'name email')
       .exec();
 
-    return Promise.all(projects.map(project => this.mapToResponseDto(project)));
+    return Promise.all(
+      projects.map((project) => this.mapToResponseDto(project)),
+    );
   }
 
   //get project by id services
-  async findById(id: string, user?: { id: string; role: string }): Promise<ProjectResponseDto> {
+  async findById(
+    id: string,
+    user?: { id: string; role: string },
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectModel
       .findById(id)
-      .populate('team', 'name members')
+      .populate({
+        path: 'team',
+        select: 'name members',
+        populate: {
+          path: 'members',
+          select: 'name email',
+        },
+      })
       .populate('manager', 'name email')
       .populate('contributors', 'name email')
       .exec();
@@ -89,10 +107,12 @@ export class ProjectsService {
     // Check authorization for members
     if (user && user.role.toLowerCase() === 'member') {
       const isInTeam = (project.team as any)?.members?.some(
-        (member: any) => member._id.toString() === user.id
+        (member: any) => member._id.toString() === user.id,
       );
       if (!isInTeam) {
-        throw new ForbiddenException('You do not have permission to view this project');
+        throw new ForbiddenException(
+          'You do not have permission to view this project',
+        );
       }
     }
 
@@ -100,7 +120,10 @@ export class ProjectsService {
   }
 
   //update project services
-  async update(id: string, updateProjectDto: UpdateProjectDto): Promise<ProjectResponseDto> {
+  async update(
+    id: string,
+    updateProjectDto: UpdateProjectDto,
+  ): Promise<ProjectResponseDto> {
     // If status is changed to completed, set completedAt
     if (updateProjectDto.status === 'completed') {
       updateProjectDto.completedAt = new Date();
@@ -108,7 +131,10 @@ export class ProjectsService {
     }
 
     const updatedProject = await this.projectModel
-      .findByIdAndUpdate(id, updateProjectDto, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, updateProjectDto, {
+        new: true,
+        runValidators: true,
+      })
       .populate('team', 'name')
       .populate('manager', 'name email')
       .populate('contributors', 'name email')
@@ -142,7 +168,9 @@ export class ProjectsService {
       .populate('contributors', 'name email')
       .exec();
 
-    return Promise.all(projects.map(project => this.mapToResponseDto(project)));
+    return Promise.all(
+      projects.map((project) => this.mapToResponseDto(project)),
+    );
   }
 
   async getProjectsByManager(managerId: string): Promise<ProjectResponseDto[]> {
@@ -153,13 +181,17 @@ export class ProjectsService {
       .populate('contributors', 'name email')
       .exec();
 
-    return Promise.all(projects.map(project => this.mapToResponseDto(project)));
+    return Promise.all(
+      projects.map((project) => this.mapToResponseDto(project)),
+    );
   }
 
-  async getProjectsByContributor(userId: string): Promise<ProjectResponseDto[]> {
+  async getProjectsByContributor(
+    userId: string,
+  ): Promise<ProjectResponseDto[]> {
     // find all teams the user belongs to
     const teams = await this.teamsService.getTeamsByMember(userId);
-    const teamIds = teams.map(t => t.id);
+    const teamIds = teams.map((t) => t._id);
 
     if (teamIds.length === 0) {
       // user isn't part of any team – return empty array
@@ -173,10 +205,15 @@ export class ProjectsService {
       .populate('contributors', 'name email')
       .exec();
 
-    return Promise.all(projects.map(project => this.mapToResponseDto(project)));
+    return Promise.all(
+      projects.map((project) => this.mapToResponseDto(project)),
+    );
   }
 
-  async addContributor(projectId: string, userId: string): Promise<ProjectResponseDto> {
+  async addContributor(
+    projectId: string,
+    userId: string,
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectModel.findById(projectId);
     if (!project) {
       throw new NotFoundException(`Project with ID ${projectId} not found`);
@@ -191,21 +228,27 @@ export class ProjectsService {
     return this.getProjectWithDetails(projectId);
   }
 
-  async removeContributor(projectId: string, userId: string): Promise<ProjectResponseDto> {
+  async removeContributor(
+    projectId: string,
+    userId: string,
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectModel.findById(projectId);
     if (!project) {
       throw new NotFoundException(`Project with ID ${projectId} not found`);
     }
 
-    project.contributors = project.contributors.filter(contributorId =>
-      contributorId.toString() !== userId
+    project.contributors = project.contributors.filter(
+      (contributorId) => contributorId.toString() !== userId,
     );
     await project.save();
 
     return this.getProjectWithDetails(projectId);
   }
 
-  async updateProgress(projectId: string, progress: number): Promise<ProjectResponseDto> {
+  async updateProgress(
+    projectId: string,
+    progress: number,
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectModel.findById(projectId);
     if (!project) {
       throw new NotFoundException(`Project with ID ${projectId} not found`);
@@ -234,6 +277,21 @@ export class ProjectsService {
     return this.getProjectWithDetails(projectId);
   }
 
+  async recalculateProjectProgress(projectId: string): Promise<void> {
+    const tasks = await this.projectModel.db
+      .model('Task')
+      .find({ project: projectId });
+    if (tasks.length === 0) return;
+
+    const totalProgress = tasks.reduce(
+      (sum, task) => sum + (task.percentageComplete || 0),
+      0,
+    );
+    const averageProgress = Math.round(totalProgress / tasks.length);
+
+    await this.updateProgress(projectId, averageProgress);
+  }
+
   async getOverdueProjects(): Promise<ProjectResponseDto[]> {
     const now = new Date();
     const projects = await this.projectModel
@@ -246,13 +304,24 @@ export class ProjectsService {
       .populate('contributors', 'name email')
       .exec();
 
-    return Promise.all(projects.map(project => this.mapToResponseDto(project)));
+    return Promise.all(
+      projects.map((project) => this.mapToResponseDto(project)),
+    );
   }
 
-  private async getProjectWithDetails(projectId: string): Promise<ProjectResponseDto> {
+  private async getProjectWithDetails(
+    projectId: string,
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectModel
       .findById(projectId)
-      .populate('team', 'name')
+      .populate({
+        path: 'team',
+        select: 'name members manager',
+        populate: {
+          path: 'members',
+          select: 'name email',
+        },
+      })
       .populate('manager', 'name email')
       .populate('contributors', 'name email')
       .exec();
@@ -264,17 +333,24 @@ export class ProjectsService {
     return this.mapToResponseDto(project);
   }
 
-  private async mapToResponseDto(project: Project): Promise<ProjectResponseDto> {
+  private async mapToResponseDto(
+    project: Project,
+  ): Promise<ProjectResponseDto> {
     return {
-      id: project._id.toString(),
+      _id: project._id.toString(),
       name: project.name,
       description: project.description,
       team: {
-        id: (project.team as any)?._id?.toString() || '',
+        _id: (project.team as any)?._id?.toString() || '',
         name: (project.team as any)?.name || 'Unknown Team',
+        members: ((project.team as any)?.members || []).map((m: any) => ({
+          _id: m?._id?.toString() || '',
+          name: m?.name || 'Unknown',
+          email: m?.email || '',
+        })),
       },
       manager: {
-        id: (project.manager as any)?._id?.toString() || '',
+        _id: (project.manager as any)?._id?.toString() || '',
         name: (project.manager as any)?.name || 'Unknown Manager',
         email: (project.manager as any)?.email || '',
       },
@@ -284,7 +360,7 @@ export class ProjectsService {
       progress: project.progress,
       completedAt: project.completedAt,
       contributors: (project.contributors || []).map((contributor: any) => ({
-        id: contributor?._id?.toString() || '',
+        _id: contributor?._id?.toString() || '',
         name: contributor?.name || 'Unknown',
         email: contributor?.email || '',
       })),

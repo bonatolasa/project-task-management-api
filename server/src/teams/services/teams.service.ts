@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Team } from '../schemas/team.schema';
@@ -16,7 +20,6 @@ export class TeamsService {
     private notificationsService: NotificationsService,
   ) { }
 
-
   // create a new team
   async createTeam(createTeamDto: CreateTeamDto): Promise<TeamResponseDto> {
     const createdTeam = new this.teamModel(createTeamDto);
@@ -24,14 +27,16 @@ export class TeamsService {
 
     // Notify all managers about the new team
     const managers = await this.usersService.getUsersByRole(Role.MANAGER);
-    await Promise.all(managers.map(manager =>
-      this.notificationsService.create({
-        userId: manager.id,
-        title: 'New Team Created',
-        message: `A new team "${savedTeam.name}" has been created.`,
-        type: 'team_assignment'
-      })
-    ));
+    await Promise.all(
+      managers.map((manager) =>
+        this.notificationsService.create({
+          userId: manager.id,
+          title: 'New Team Created',
+          message: `A new team "${savedTeam.name}" has been created.`,
+          type: 'team_assignment',
+        }),
+      ),
+    );
 
     return this.getTeamWithDetails(savedTeam._id.toString());
   }
@@ -43,7 +48,7 @@ export class TeamsService {
       .populate('members', 'name email role')
       .exec();
 
-    return Promise.all(teams.map(team => this.mapToResponseDto(team)));
+    return Promise.all(teams.map((team) => this.mapToResponseDto(team)));
   }
 
   async findById(id: string): Promise<TeamResponseDto> {
@@ -60,7 +65,10 @@ export class TeamsService {
     return this.mapToResponseDto(team);
   }
 
-  async update(id: string, updateTeamDto: UpdateTeamDto): Promise<TeamResponseDto> {
+  async update(
+    id: string,
+    updateTeamDto: UpdateTeamDto,
+  ): Promise<TeamResponseDto> {
     const updatedTeam = await this.teamModel
       .findByIdAndUpdate(id, updateTeamDto, { new: true, runValidators: true })
       .populate('manager', 'name email role')
@@ -103,7 +111,7 @@ export class TeamsService {
         userId: userId,
         title: 'Assigned to Team',
         message: `You have been assigned to team "${team.name}".`,
-        type: 'team_assignment'
+        type: 'team_assignment',
       });
     }
 
@@ -116,8 +124,8 @@ export class TeamsService {
       throw new NotFoundException(`Team with ID ${teamId} not found`);
     }
 
-    team.members = team.members.filter(memberId =>
-      memberId.toString() !== userId
+    team.members = team.members.filter(
+      (memberId) => memberId.toString() !== userId,
     );
     await team.save();
 
@@ -131,7 +139,7 @@ export class TeamsService {
       .populate('members', 'name email role')
       .exec();
 
-    return Promise.all(teams.map(team => this.mapToResponseDto(team)));
+    return Promise.all(teams.map((team) => this.mapToResponseDto(team)));
   }
 
   async getTeamsByMember(memberId: string): Promise<TeamResponseDto[]> {
@@ -141,7 +149,7 @@ export class TeamsService {
       .populate('members', 'name email role')
       .exec();
 
-    return Promise.all(teams.map(team => this.mapToResponseDto(team)));
+    return Promise.all(teams.map((team) => this.mapToResponseDto(team)));
   }
 
   async getTeamByMember(memberId: string): Promise<TeamResponseDto> {
@@ -158,7 +166,9 @@ export class TeamsService {
     return this.mapToResponseDto(team);
   }
 
-  async getTeamMembers(teamId: string): Promise<{ _id: string; name: string; email: string; role: string }[]> {
+  async getTeamMembers(
+    teamId: string,
+  ): Promise<{ _id: string; name: string; email: string; role: string }[]> {
     const team = await this.teamModel
       .findById(teamId)
       .populate('members', 'name email role')
@@ -192,22 +202,24 @@ export class TeamsService {
 
   private async mapToResponseDto(team: Team): Promise<TeamResponseDto> {
     return {
-      id: team._id.toString(),
+      _id: team._id.toString(),
       name: team.name,
       description: team.description,
-      manager: team.manager ? {
-        id: (team.manager as any)._id?.toString(),
-        name: (team.manager as any).name,
-        email: (team.manager as any).email,
-        role: (team.manager as any).role,
-      } : undefined,
+      manager: team.manager
+        ? {
+          _id: (team.manager as any)._id?.toString(),
+          name: (team.manager as any).name,
+          email: (team.manager as any).email,
+          role: (team.manager as any).role,
+        }
+        : undefined,
       members: team.members.map((member: any) => ({
-        id: member._id.toString(),
+        _id: member._id.toString(),
         name: member.name,
         email: member.email,
         role: member.role,
       })),
-      isActive: team.isActive
+      isActive: team.isActive,
     };
   }
 }

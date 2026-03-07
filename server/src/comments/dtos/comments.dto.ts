@@ -1,11 +1,10 @@
 import { IsMongoId, IsOptional, IsString } from 'class-validator';
 
 export class CreateCommentDto {
-    @IsString()
-    message: string;
+  @IsString()
+  message: string;
 
-    @IsMongoId()
-    @IsOptional()
-    parentCommentId?: string;
+  @IsMongoId()
+  @IsOptional()
+  parentCommentId?: string;
 }
-

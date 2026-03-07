@@ -19,12 +19,16 @@ const TeamProjects: React.FC = () => {
 
     const fetchProjects = async () => {
         try {
-            if (!user) return;
-            const res = await api.get(`/projects/contributor/${user.id}`);
+            const userId = user?.id || (user as any)?._id;
+            if (!userId) return;
+            const res = await api.get(`/projects/contributor/${userId}`);
             const data = res.data || res;
-            const projects = Array.isArray(data) ? data : data?.data || [];
+            const projectsData = Array.isArray(data) ? data : data?.data || [];
             // ensure correct id field
-            const normalized = projects.map((p: any) => ({ id: p.id || p._id || '', name: p.name }));
+            const normalized = projectsData.map((p: any) => ({
+                id: p._id || p.id || '',
+                name: p.name
+            }));
             setProjects(normalized);
         } catch (err) {
             console.error(err);
@@ -34,9 +38,9 @@ const TeamProjects: React.FC = () => {
         }
     };
 
-    useEffect(() => { fetchProjects(); }, []);
-
-
+    useEffect(() => {
+        fetchProjects();
+    }, [user]);
 
     return (
         <div>

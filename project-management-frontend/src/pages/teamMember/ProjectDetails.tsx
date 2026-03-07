@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
 import api from '../../services/api';
-import { ArrowLeft, Calendar, Clock, User, Target, CheckCircle2, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Target, CheckCircle2, Download, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
+import TaskCollaboration from '../../components/TaskCollaboration';
 
 interface Project {
     _id: string;
@@ -15,7 +16,11 @@ interface Project {
     deadline: string;
     status: string;
     manager: { _id: string; name: string };
-    team: { _id: string; name: string };
+    team: {
+        _id: string;
+        name: string;
+        members?: Array<{ _id: string; name: string; email: string }>;
+    };
 }
 
 interface Task {
@@ -29,6 +34,7 @@ interface Task {
     progress?: number;
     assignedTo: Array<{ _id: string; name: string }>;
     createdBy: { _id: string; name: string };
+    project?: { _id: string; name: string };
 }
 
 const ProjectDetails: React.FC = () => {
@@ -38,6 +44,7 @@ const ProjectDetails: React.FC = () => {
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
+    const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -45,17 +52,14 @@ const ProjectDetails: React.FC = () => {
             try {
                 const [projectRes, tasksRes] = await Promise.all([
                     api.get(`/projects/${id}`),
-                    api.get('/tasks/my-tasks'),
+                    api.get(`/tasks?projectId=${id}`),
                 ]);
 
                 const data = projectRes.data?.data || projectRes.data;
                 setProject(data);
 
-                // Filter tasks for this project that are assigned to the user
-                const projectTasks = tasksRes.data.filter((task: Task) =>
-                    task.project?._id === id &&
-                    task.assignedTo.some((member) => member._id === user.id)
-                );
+                // Tasks are already filtered by project from the API
+                const projectTasks = tasksRes.data?.data || tasksRes.data;
                 setTasks(projectTasks);
             } catch (err: any) {
                 console.error(err);
@@ -175,12 +179,10 @@ const ProjectDetails: React.FC = () => {
                                 color: '#6b7280',
                                 lineHeight: 1.6,
                                 margin: 0,
-                                // Wrapping and overflow handling
                                 overflowWrap: 'break-word',
                                 wordWrap: 'break-word',
                                 wordBreak: 'break-word',
                                 whiteSpace: 'normal',
-                                // allow vertical growth but cap extremely long content
                                 maxHeight: 240,
                                 overflowY: 'auto',
                                 paddingRight: 8,
@@ -211,7 +213,7 @@ const ProjectDetails: React.FC = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <User size={16} color="#9ca3af" />
+                        <User size={16} color="#9ca3af" />
                         <span style={{ fontSize: 14, color: '#6b7280' }}>
                             Manager: {project.manager?.name || '—'}
                         </span>
@@ -241,6 +243,68 @@ const ProjectDetails: React.FC = () => {
                             Status: {project.status?.replace('_', ' ') || '—'}
                         </span>
                     </div>
+                </div>
+            </div>
+
+            {/* Project Team */}
+            <div
+                style={{
+                    background: '#fff',
+                    borderRadius: 16,
+                    padding: 24,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                    border: '1px solid #f3f4f6',
+                    marginBottom: 24,
+                }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
+                        Project Team: {project.team?.name}
+                    </h2>
+                    <span style={{ fontSize: 13, color: '#9ca3af' }}>{project.team?.members?.length || 0} Members</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
+                    {project.team?.members?.map((member) => {
+                        const userId = user?.id || (user as any)?._id;
+                        const isMe = member._id === userId;
+                        return (
+                            <div
+                                key={member._id}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    padding: '10px 14px',
+                                    borderRadius: 12,
+                                    background: '#f9fafb',
+                                    border: '1px solid #f3f4f6'
+                                }}
+                            >
+                                <div style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: '50%',
+                                    background: isMe ? '#10b981' : '#e5e7eb',
+                                    color: isMe ? '#fff' : '#6b7280',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 14,
+                                    fontWeight: 600
+                                }}>
+                                    {member.name.charAt(0)}
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {member.name} {isMe && '(You)'}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {member.email}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -277,11 +341,17 @@ const ProjectDetails: React.FC = () => {
                                     border: '1px solid #f3f4f6',
                                     cursor: 'pointer',
                                 }}
-                                onClick={() => navigate(`/dashboard/tasks?task=${task._id}`)}
+                                onClick={() => setExpandedTaskId(expandedTaskId === task._id ? null : task._id)}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                                     <div style={{ flex: 1 }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>
+                                        <h3
+                                            style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0, textDecoration: 'underline' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/dashboard/tasks/${task._id}`);
+                                            }}
+                                        >
                                             {task.title}
                                         </h3>
                                         {task.description && (
@@ -290,7 +360,6 @@ const ProjectDetails: React.FC = () => {
                                                     fontSize: 14,
                                                     color: '#6b7280',
                                                     margin: '4px 0',
-                                                    // Wrapping rules to avoid overflow on long words/URLs
                                                     overflowWrap: 'break-word',
                                                     wordWrap: 'break-word',
                                                     wordBreak: 'break-word',
@@ -364,12 +433,49 @@ const ProjectDetails: React.FC = () => {
                                 )}
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#9ca3af' }}>
-                                    <span>Created by {task.createdBy.name}</span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <Clock size={12} />
-                                        {formatDate(task.deadline)}
-                                    </span>
+                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                        <span>Created by {task.createdBy.name}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <Clock size={12} />
+                                            {formatDate(task.deadline)}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setExpandedTaskId(expandedTaskId === task._id ? null : task._id);
+                                        }}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 6,
+                                            background: expandedTaskId === task._id ? '#f3f4f6' : 'transparent',
+                                            border: '1px solid #e5e7eb',
+                                            padding: '4px 10px',
+                                            borderRadius: 6,
+                                            fontSize: 12,
+                                            fontWeight: 600,
+                                            color: '#374151',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <MessageSquare size={14} />
+                                        {expandedTaskId === task._id ? 'Close' : 'Collaborate'}
+                                        {expandedTaskId === task._id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </button>
                                 </div>
+
+                                {/* Collaboration Section */}
+                                {expandedTaskId === task._id && (
+                                    <div
+                                        style={{ marginTop: 16, borderTop: '1px dashed #e5e7eb', paddingTop: 16 }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <TaskCollaboration taskId={task._id} />
+                                    </div>
+                                )}
+
                             </div>
                         ))}
                     </div>

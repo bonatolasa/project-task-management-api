@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Task } from '../schemas/tasks.schema';
@@ -7,7 +12,7 @@ import { CreateTaskDto, UpdateTaskDto } from '../dtos/tasks.dto';
 import { TaskResponseDto } from '../responses/tasks.response';
 import { TaskStatus } from 'src/enums/task-status.enum';
 import { NotificationsService } from 'src/notifications/services/notifications.service';
-
+import { ProjectsService } from 'src/projects/services/projects.service';
 
 @Injectable()
 export class TasksService {
@@ -15,12 +20,16 @@ export class TasksService {
     @InjectModel(Task.name) private taskModel: Model<Task>,
     @InjectModel(Project.name) private projectModel: Model<Project>,
     private readonly notificationsService: NotificationsService,
+    private readonly projectsService: ProjectsService,
   ) { }
 
   // Create a new task
   async create(createTaskDto: CreateTaskDto): Promise<TaskResponseDto> {
     // If status is being set to in_progress, set startedAt if not provided
-    if (createTaskDto.status === TaskStatus.IN_PROGRESS && !createTaskDto.startedAt) {
+    if (
+      createTaskDto.status === TaskStatus.IN_PROGRESS &&
+      !createTaskDto.startedAt
+    ) {
       createTaskDto.startedAt = new Date();
     }
 
@@ -45,6 +54,12 @@ export class TasksService {
       }
     }
 
+    if (savedTask.project) {
+      await this.projectsService.recalculateProjectProgress(
+        savedTask.project.toString(),
+      );
+    }
+
     return this.getTaskWithDetails(savedTask._id.toString());
   }
 
@@ -58,21 +73,40 @@ export class TasksService {
       .populate('dependencies', 'title')
       .exec();
 
-    return Promise.all(tasks.map(task => this.mapToResponseDto(task)));
+    return Promise.all(tasks.map((task) => this.mapToResponseDto(task)));
   }
 
-  async findByProject(projectId: string, user?: { id: string; role: string }): Promise<TaskResponseDto[]> {
+  async findByProject(
+    projectId: string,
+    user?: { id: string; role: string },
+  ): Promise<TaskResponseDto[]> {
     // Check if user has access to the project
     if (user && user.role.toLowerCase() === 'member') {
-      const project = await this.projectModel.findById(projectId).select('contributors').exec();
+      const project = await this.projectModel
+        .findById(projectId)
+        .select('contributors team')
+        .populate({
+          path: 'team',
+          select: 'members',
+        })
+        .exec();
+
       if (!project) {
         throw new NotFoundException(`Project with ID ${projectId} not found`);
       }
+
       const isContributor = project.contributors?.some(
-        contributor => contributor.toString() === user.id
+        (contributor) => contributor.toString() === user.id,
       );
-      if (!isContributor) {
-        throw new ForbiddenException('You do not have permission to view tasks for this project');
+
+      const isInTeam = (project.team as any)?.members?.some(
+        (member: any) => member.toString() === user.id || member._id?.toString() === user.id,
+      );
+
+      if (!isContributor && !isInTeam) {
+        throw new ForbiddenException(
+          'You do not have permission to view tasks for this project',
+        );
       }
     }
 
@@ -84,7 +118,7 @@ export class TasksService {
       .populate('dependencies', 'title')
       .exec();
 
-    return Promise.all(tasks.map(task => this.mapToResponseDto(task)));
+    return Promise.all(tasks.map((task) => this.mapToResponseDto(task)));
   }
 
   //Get a Single Task by ID with populated references
@@ -101,7 +135,6 @@ export class TasksService {
       .populate('dependencies', 'title')
       .exec();
 
-
     if (!task) {
       throw new BadRequestException(`Task with ID ${id} not found`);
     }
@@ -109,10 +142,18 @@ export class TasksService {
     return this.mapToResponseDto(task);
   }
 
-  async update(id: string, updateTaskDto: UpdateTaskDto, user?: { id: string; role: string }): Promise<TaskResponseDto> {
+  async update(
+    id: string,
+    updateTaskDto: UpdateTaskDto,
+    user?: { id: string; role: string },
+  ): Promise<TaskResponseDto> {
     try {
-      const beforeUpdate = await this.taskModel.findById(id).select('assignedTo title percentageComplete').populate('project', 'manager').exec();
-      
+      const beforeUpdate = await this.taskModel
+        .findById(id)
+        .select('assignedTo title percentageComplete')
+        .populate('project', 'manager')
+        .exec();
+
       // Permission check for members
       if (user && user.role.toLowerCase() === 'member') {
         const task = beforeUpdate;
@@ -120,13 +161,15 @@ export class TasksService {
           throw new NotFoundException(`Task with ID ${id} not found`);
         }
         const isAssigned = task.assignedTo?.some(
-          assignee => assignee.toString() === user.id
+          (assignee) => assignee.toString() === user.id,
         );
         if (!isAssigned) {
-          throw new ForbiddenException('You can only update tasks assigned to you');
+          throw new ForbiddenException(
+            'You can only update tasks assigned to you',
+          );
         }
       }
-      
+
       // If percentageComplete is being updated, set status accordingly
       if (updateTaskDto.percentageComplete !== undefined) {
         if (updateTaskDto.percentageComplete === 0) {
@@ -134,14 +177,17 @@ export class TasksService {
         } else if (updateTaskDto.percentageComplete === 100) {
           updateTaskDto.status = TaskStatus.COMPLETED;
           updateTaskDto.completedAt = new Date();
-        } else if (updateTaskDto.percentageComplete > 0 && updateTaskDto.percentageComplete < 100) {
+        } else if (
+          updateTaskDto.percentageComplete > 0 &&
+          updateTaskDto.percentageComplete < 100
+        ) {
           updateTaskDto.status = TaskStatus.IN_PROGRESS;
           if (!updateTaskDto.startedAt) {
             updateTaskDto.startedAt = new Date();
           }
         }
       }
-      
+
       // If status is being updated to in_progress, set startedAt if not provided
       if (updateTaskDto.status === 'in_progress' && !updateTaskDto.startedAt) {
         updateTaskDto.startedAt = new Date();
@@ -154,7 +200,10 @@ export class TasksService {
       }
 
       const updatedTask = await this.taskModel
-        .findByIdAndUpdate(id, updateTaskDto, { new: true, runValidators: true })
+        .findByIdAndUpdate(id, updateTaskDto, {
+          new: true,
+          runValidators: true,
+        })
         .populate('project', 'name manager')
         .populate('assignedTo', 'name email')
         .populate('createdBy', 'name email')
@@ -165,9 +214,13 @@ export class TasksService {
         throw new NotFoundException(`Task with ID ${id} not found`);
       }
 
-      const previousAssignees = beforeUpdate?.assignedTo?.map(a => a.toString()) || [];
-      const nextAssignees = updatedTask.assignedTo?.map(a => a.toString()) || [];
-      const newAssignees = nextAssignees.filter(a => !previousAssignees.includes(a));
+      const previousAssignees =
+        beforeUpdate?.assignedTo?.map((a) => a.toString()) || [];
+      const nextAssignees =
+        updatedTask.assignedTo?.map((a) => a.toString()) || [];
+      const newAssignees = nextAssignees.filter(
+        (a) => !previousAssignees.includes(a),
+      );
 
       // send notifications but don't block on failures
       try {
@@ -185,9 +238,13 @@ export class TasksService {
       }
 
       try {
-        if (updateTaskDto.percentageComplete !== undefined && 
-            beforeUpdate?.percentageComplete !== updateTaskDto.percentageComplete &&
-            updatedTask.project && (updatedTask.project as any).manager) {
+        if (
+          updateTaskDto.percentageComplete !== undefined &&
+          beforeUpdate?.percentageComplete !==
+          updateTaskDto.percentageComplete &&
+          updatedTask.project &&
+          (updatedTask.project as any).manager
+        ) {
           const managerId = (updatedTask.project as any).manager.toString();
           await this.notificationsService.create({
             userId: managerId,
@@ -201,9 +258,20 @@ export class TasksService {
         console.error('failed to notify project manager', notifErr);
       }
 
+      if (updatedTask.project) {
+        await this.projectsService.recalculateProjectProgress(
+          (updatedTask.project as any)._id?.toString() ||
+          updatedTask.project.toString(),
+        );
+      }
+
       return this.mapToResponseDto(updatedTask);
     } catch (err) {
-      console.error('Error in TasksService.update', { id, updateTaskDto, error: err });
+      console.error('Error in TasksService.update', {
+        id,
+        updateTaskDto,
+        error: err,
+      });
       throw err;
     }
   }
@@ -230,7 +298,7 @@ export class TasksService {
       .populate('dependencies', 'title')
       .exec();
 
-    return Promise.all(tasks.map(task => this.mapToResponseDto(task)));
+    return Promise.all(tasks.map((task) => this.mapToResponseDto(task)));
   }
 
   async getTasksByUser(userId: string): Promise<TaskResponseDto[]> {
@@ -242,9 +310,8 @@ export class TasksService {
       .populate('dependencies', 'title')
       .exec();
 
-    return Promise.all(tasks.map(task => this.mapToResponseDto(task)));
+    return Promise.all(tasks.map((task) => this.mapToResponseDto(task)));
   }
-
 
   async getMyTasks(userId: string): Promise<Task[]> {
     return this.taskModel
@@ -266,10 +333,13 @@ export class TasksService {
       .populate('dependencies', 'title')
       .exec();
 
-    return Promise.all(tasks.map(task => this.mapToResponseDto(task)));
+    return Promise.all(tasks.map((task) => this.mapToResponseDto(task)));
   }
 
-  async updateTaskProgress(id: string, percentageComplete: number): Promise<TaskResponseDto> {
+  async updateTaskProgress(
+    id: string,
+    percentageComplete: number,
+  ): Promise<TaskResponseDto> {
     const task = await this.taskModel.findById(id);
     if (!task) {
       throw new NotFoundException(`Task with ID ${id} not found`);
@@ -292,10 +362,20 @@ export class TasksService {
     }
 
     await task.save();
+
+    if (task.project) {
+      await this.projectsService.recalculateProjectProgress(
+        task.project.toString(),
+      );
+    }
+
     return this.getTaskWithDetails(id);
   }
 
-  async addDependency(taskId: string, dependencyId: string): Promise<TaskResponseDto> {
+  async addDependency(
+    taskId: string,
+    dependencyId: string,
+  ): Promise<TaskResponseDto> {
     const task = await this.taskModel.findById(taskId);
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found`);
@@ -310,14 +390,17 @@ export class TasksService {
     return this.getTaskWithDetails(taskId);
   }
 
-  async removeDependency(taskId: string, dependencyId: string): Promise<TaskResponseDto> {
+  async removeDependency(
+    taskId: string,
+    dependencyId: string,
+  ): Promise<TaskResponseDto> {
     const task = await this.taskModel.findById(taskId);
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found`);
     }
 
-    task.dependencies = task.dependencies.filter(depId =>
-      depId.toString() !== dependencyId
+    task.dependencies = task.dependencies.filter(
+      (depId) => depId.toString() !== dependencyId,
     );
     await task.save();
 
@@ -337,9 +420,8 @@ export class TasksService {
       .populate('dependencies', 'title')
       .exec();
 
-    return Promise.all(tasks.map(task => this.mapToResponseDto(task)));
+    return Promise.all(tasks.map((task) => this.mapToResponseDto(task)));
   }
-
 
   async getTasksDueSoon(days: number = 3): Promise<TaskResponseDto[]> {
     const now = new Date();
@@ -357,7 +439,7 @@ export class TasksService {
       .populate('dependencies', 'title')
       .exec();
 
-    return Promise.all(tasks.map(task => this.mapToResponseDto(task)));
+    return Promise.all(tasks.map((task) => this.mapToResponseDto(task)));
   }
 
   async getTaskStatistics(projectId?: string): Promise<any> {
@@ -369,12 +451,15 @@ export class TasksService {
     const tasks = await this.taskModel.find(filter).exec();
 
     const total = tasks.length;
-    const completed = tasks.filter(t => t.status === 'completed').length;
-    const inProgress = tasks.filter(t => t.status === 'in_progress').length;
-    const pending = tasks.filter(t => t.status === 'pending').length;
-    const blocked = tasks.filter(t => t.status === 'blocked');
+    const completed = tasks.filter((t) => t.status === 'completed').length;
+    const inProgress = tasks.filter((t) => t.status === 'in_progress').length;
+    const pending = tasks.filter((t) => t.status === 'pending').length;
+    const blocked = tasks.filter((t) => t.status === 'blocked');
 
-    const averageCompletion = total > 0 ? tasks.reduce((sum, t) => sum + t.percentageComplete, 0) / total : 0;
+    const averageCompletion =
+      total > 0
+        ? tasks.reduce((sum, t) => sum + t.percentageComplete, 0) / total
+        : 0;
 
     return {
       total,
@@ -408,27 +493,35 @@ export class TasksService {
       _id: task._id.toString(),
       title: task.title,
       description: task.description,
-      project: task.project ? {
-        _id: (task.project as any)._id.toString(),
-        name: (task.project as any).name,
-      } : undefined,
-      assignedTo: task.assignedTo ? (task.assignedTo as any[]).map((a: any) => ({
-        _id: a._id.toString(),
-        name: a.name,
-        email: a.email,
-      })) : [],
-      createdBy: task.createdBy ? {
-        _id: (task.createdBy as any)._id.toString(),
-        name: (task.createdBy as any).name,
-        email: (task.createdBy as any).email,
-      } : undefined,
+      project: task.project
+        ? {
+          _id: (task.project as any)._id.toString(),
+          name: (task.project as any).name,
+        }
+        : undefined,
+      assignedTo: task.assignedTo
+        ? (task.assignedTo as any[]).map((a: any) => ({
+          _id: a._id.toString(),
+          name: a.name,
+          email: a.email,
+        }))
+        : [],
+      createdBy: task.createdBy
+        ? {
+          _id: (task.createdBy as any)._id.toString(),
+          name: (task.createdBy as any).name,
+          email: (task.createdBy as any).email,
+        }
+        : undefined,
       status: task.status,
       percentageComplete: task.percentageComplete,
       priority: task.priority,
       deadline: task.deadline,
       startedAt: task.startedAt,
       completedAt: task.completedAt,
-      dependencies: task.dependencies ? task.dependencies.map((dep: any) => dep._id.toString()) : [],
+      dependencies: task.dependencies
+        ? task.dependencies.map((dep: any) => dep._id.toString())
+        : [],
       estimatedHours: task.estimatedHours,
       actualHours: task.actualHours,
       comments: task.comments,
@@ -437,4 +530,3 @@ export class TasksService {
     };
   }
 }
-

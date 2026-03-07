@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { ManagerSidebar } from './Sidebar';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
@@ -65,7 +65,7 @@ export const PromanagerLayout: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                         <NotificationBell accentColor="#0f5841" />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Link to="/manager/profile" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
                             <div
                                 style={{
                                     width: 36,
@@ -86,7 +86,7 @@ export const PromanagerLayout: React.FC = () => {
                                 <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{user?.name || 'Manager'}</div>
                                 <div style={{ fontSize: 11, color: '#9ca3af' }}>Manager</div>
                             </div>
-                        </div>
+                        </Link>
                     </div>
                 </header>
 

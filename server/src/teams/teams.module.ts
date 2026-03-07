@@ -16,4 +16,4 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
   providers: [TeamsService],
   exports: [TeamsService],
 })
-export class TeamsModule { }
+export class TeamsModule {}

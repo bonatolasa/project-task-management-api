@@ -9,6 +9,7 @@ import {
     BarChart3,
     Activity,
     Settings,
+    User,
     LogOut,
     ChevronLeft,
     ChevronRight,
@@ -26,6 +27,7 @@ const navItems = [
     { to: '/manager/reports', icon: BarChart3, label: 'Reports' },
     { to: '/manager/activities', icon: Activity, label: 'Activities' },
     { to: '/manager/settings', icon: Settings, label: 'Settings' },
+    { to: '/manager/profile', icon: User, label: 'Profile' },
 ];
 
 export const ManagerSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {

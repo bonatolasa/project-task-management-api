@@ -21,33 +21,60 @@ export class CommentsService {
     private readonly activitiesService: ActivitiesService,
   ) {}
 
-  async create(taskId: string, userId: string, dto: CreateCommentDto) {
+  async create(
+    taskId: string,
+    currentUser: { id: string; role?: string },
+    dto: CreateCommentDto,
+  ) {
     const task = await this.tasksService.findById(taskId);
 
     const comment = await new this.commentModel({
       taskId,
-      userId,
+      userId: currentUser.id,
       message: dto.message,
       parentCommentId: dto.parentCommentId,
     }).save();
 
+    // Notify all assigned members and the creator
+    const notificationTargets = new Set<string>();
+
+    // Add assignees
     if (task.assignedTo && task.assignedTo.length > 0) {
-      for (const assignee of task.assignedTo) {
-        if (assignee._id !== userId) {
-          await this.notificationsService.create({
-            userId: assignee._id,
-            title: 'New Comment',
-            message: `New comment on task: ${task.title}`,
-            type: 'task_comment_added',
-            relatedId: taskId,
-          });
-        }
+      task.assignedTo.forEach((assignee: any) => {
+        const id = assignee._id?.toString() || assignee.toString();
+        if (id !== currentUser.id) notificationTargets.add(id);
+      });
+    }
+
+    // Add creator
+    const creatorId =
+      task.createdBy?._id?.toString() || task.createdBy?.toString();
+    if (creatorId && creatorId !== currentUser.id) {
+      notificationTargets.add(creatorId);
+    }
+
+    const senderName =
+      currentUser.role?.toLowerCase() === Role.MANAGER
+        ? 'Manager'
+        : 'Team Member';
+
+    for (const targetId of notificationTargets) {
+      try {
+        await this.notificationsService.create({
+          userId: targetId,
+          title: 'New Task Comment',
+          message: `${senderName} commented on task: ${task.title}`,
+          type: 'task_comment_added',
+          relatedId: taskId,
+        });
+      } catch (err) {
+        console.error(`Failed to notify ${targetId} about new comment`, err);
       }
     }
 
     await this.activitiesService.create({
       actionType: 'task_updated',
-      performedBy: userId,
+      performedBy: currentUser.id,
       targetId: taskId,
       description: `Comment added on task '${task.title}'`,
     });
@@ -80,10 +107,11 @@ export class CommentsService {
     const isAdmin = currentUser.role?.toLowerCase() === Role.ADMIN;
 
     if (!isOwner && !isManager && !isAdmin) {
-      throw new ForbiddenException('You are not allowed to delete this comment');
+      throw new ForbiddenException(
+        'You are not allowed to delete this comment',
+      );
     }
 
     await this.commentModel.findByIdAndDelete(commentId).exec();
   }
 }
-

@@ -1,4 +1,10 @@
-import { Controller, Get, Param, Query, UseGuards,ParseIntPipe 
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { Type } from 'class-transformer';
@@ -9,7 +15,13 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { ReportsService } from '../services/reports.service';
 import { Role } from 'src/enums/role.enum';
 import { Roles } from 'src/auth/decorators/roles.decorator';
-import { DashboardStatsResponseDto, ProjectPerformanceResponseDto, StatusDistributionResponseDto, TeamPerformanceResponseDto, UserPerformanceResponseDto } from '../responses/report.response';
+import {
+  DashboardStatsResponseDto,
+  ProjectPerformanceResponseDto,
+  StatusDistributionResponseDto,
+  TeamPerformanceResponseDto,
+  UserPerformanceResponseDto,
+} from '../responses/report.response';
 
 class TimeTrackingQueryDto {
   @Type(() => Date)
@@ -22,12 +34,12 @@ class TimeTrackingQueryDto {
   @IsOptional()
   endDate?: Date;
 }
-  @Roles(Role.ADMIN, Role.MANAGER)
-  @UseGuards(RolesGuard)
-  @JwtAuthGuard()
+@Roles(Role.ADMIN, Role.MANAGER)
+@UseGuards(RolesGuard)
+@JwtAuthGuard()
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(private readonly reportsService: ReportsService) { }
 
   @Get('dashboard')
   async getDashboardStats(): Promise<DashboardStatsResponseDto> {
@@ -39,9 +51,24 @@ export class ReportsController {
     };
   }
 
+  @Get('manager-dashboard')
+  async getManagerDashboardStats(
+    @CurrentUser() user: { id: string },
+  ): Promise<DashboardStatsResponseDto> {
+    const stats = await this.reportsService.getManagerStats(user.id);
+    return {
+      success: true,
+      data: stats,
+      message: 'Manager dashboard stats retrieved successfully',
+    };
+  }
+
   @Get('project-performance/:projectId')
-  async getProjectPerformance(@Param('projectId') projectId: string): Promise<ProjectPerformanceResponseDto> {
-    const performance = await this.reportsService.getProjectPerformance(projectId);
+  async getProjectPerformance(
+    @Param('projectId') projectId: string,
+  ): Promise<ProjectPerformanceResponseDto> {
+    const performance =
+      await this.reportsService.getProjectPerformance(projectId);
     return {
       success: true,
       data: performance,
@@ -55,7 +82,7 @@ export class ReportsController {
   @JwtAuthGuard()
   async getUserPerformance(
     @Param('userId') userId: string,
-    @CurrentUser() user: { id: string; role: string }
+    @CurrentUser() user: { id: string; role: string },
   ): Promise<UserPerformanceResponseDto> {
     // Members can only view their own performance
     if (user.role.toLowerCase() === 'member' && user.id !== userId) {
@@ -68,9 +95,11 @@ export class ReportsController {
       message: 'User performance retrieved successfully',
     };
   }
-@Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
   @Get('team-performance/:teamId')
-  async getTeamPerformance(@Param('teamId') teamId: string): Promise<TeamPerformanceResponseDto> {
+  async getTeamPerformance(
+    @Param('teamId') teamId: string,
+  ): Promise<TeamPerformanceResponseDto> {
     const performance = await this.reportsService.getTeamPerformance(teamId);
     return {
       success: true,
@@ -101,7 +130,8 @@ export class ReportsController {
 
   @Get('project-status-distribution')
   async getProjectStatusDistribution(): Promise<StatusDistributionResponseDto> {
-    const distribution = await this.reportsService.getProjectStatusDistribution();
+    const distribution =
+      await this.reportsService.getProjectStatusDistribution();
     return {
       success: true,
       data: distribution,
@@ -113,10 +143,14 @@ export class ReportsController {
   async getTimeTrackingReport(
     @Query() query: TimeTrackingQueryDto,
   ): Promise<any> {
-    const startDate = query.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Last 30 days
+    const startDate =
+      query.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Last 30 days
     const endDate = query.endDate || new Date();
-    
-    const report = await this.reportsService.getTimeTrackingReport(startDate, endDate);
+
+    const report = await this.reportsService.getTimeTrackingReport(
+      startDate,
+      endDate,
+    );
     return {
       success: true,
       data: report,

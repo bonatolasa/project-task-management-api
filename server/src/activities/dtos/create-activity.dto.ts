@@ -1,7 +1,6 @@
 export class CreateActivityDto {
-    actionType: string;
-    performedBy: string;
-    targetId?: string;
-    description: string;
+  actionType: string;
+  performedBy: string;
+  targetId?: string;
+  description: string;
 }
-

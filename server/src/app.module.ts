@@ -41,5 +41,4 @@ import { CommentsModule } from './comments/comments.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
-
+export class AppModule {}

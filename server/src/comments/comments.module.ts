@@ -8,15 +8,14 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
 import { ActivitiesModule } from 'src/activities/activities.module';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([{ name: Comment.name, schema: CommentSchema }]),
-        TasksModule,
-        NotificationsModule,
-        ActivitiesModule,
-    ],
-    controllers: [CommentsController],
-    providers: [CommentsService],
-    exports: [CommentsService],
+  imports: [
+    MongooseModule.forFeature([{ name: Comment.name, schema: CommentSchema }]),
+    TasksModule,
+    NotificationsModule,
+    ActivitiesModule,
+  ],
+  controllers: [CommentsController],
+  providers: [CommentsService],
+  exports: [CommentsService],
 })
-export class CommentsModule { }
-
+export class CommentsModule {}

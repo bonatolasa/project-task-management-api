@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from '../schemas/users.schemas';
 import { Project } from 'src/projects/schemas/project.schema';
 import { CreateUserDto, UpdateUserDto } from '../dtos/users.dto';
@@ -8,20 +12,18 @@ import { UserResponseDto } from '../responses/users.response';
 import * as bcrypt from 'bcryptjs';
 import { Role } from 'src/enums/role.enum';
 
-
-
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Project.name) private projectModel: Model<Project>,
-  ) { }
+  ) {}
 
   //create user with hashed password and check for duplicate email
   async createUsers(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     // Check if email already exists
     const existingUser = await this.userModel.findOne({
-      email: createUserDto.email.toLowerCase()
+      email: createUserDto.email.toLowerCase(),
     });
 
     if (existingUser) {
@@ -43,12 +45,9 @@ export class UsersService {
 
   //Get all users with team name populated
   async getAllUsers(): Promise<UserResponseDto[]> {
-    const users = await this.userModel
-      .find()
-      .populate('team', 'name')
-      .exec();
+    const users = await this.userModel.find().populate('team', 'name').exec();
 
-    return users.map(user => this.mapToResponseDto(user));
+    return users.map((user) => this.mapToResponseDto(user));
   }
 
   //Get user by Id with team name populated
@@ -74,7 +73,10 @@ export class UsersService {
   }
 
   //UPDATE USER SERVICES
-  async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+  async updateUser(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
     // If password is being updated, hash it
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
@@ -86,7 +88,7 @@ export class UsersService {
 
       const existingUser = await this.userModel.findOne({
         email: normalizedEmail,
-        _id: { $ne: id } // Exclude current user from check
+        _id: { $ne: id }, // Exclude current user from check
       });
 
       if (existingUser) {
@@ -96,20 +98,31 @@ export class UsersService {
       updateUserDto.email = normalizedEmail;
     }
 
-    const updatedUser = await this.userModel
-      .findByIdAndUpdate(
+    console.log('Updating user', { id, updateUserDto });
+    try {
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(id, updateUserDto, {
+          new: true,
+          runValidators: true,
+        })
+        .populate('team', 'name')
+        .exec();
+
+      if (!updatedUser) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+
+      const result = this.mapToResponseDto(updatedUser);
+      console.log('User updated successfully', { userId: id });
+      return result;
+    } catch (err) {
+      console.error('CRITICAL: Error in UsersService.updateUser', {
         id,
         updateUserDto,
-        { new: true, runValidators: true }
-      )
-      .populate('team', 'name')
-      .exec();
-
-    if (!updatedUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+        error: err,
+      });
+      throw err;
     }
-
-    return this.mapToResponseDto(updatedUser);
   }
 
   //DELETE USER BYid
@@ -133,44 +146,57 @@ export class UsersService {
       .populate('team', 'name')
       .exec();
 
-    return users.map(user => this.mapToResponseDto(user));
+    return users.map((user) => this.mapToResponseDto(user));
   }
 
   async getUsersByTeam(teamId: string): Promise<UserResponseDto[]> {
-    const users = await this.userModel
-      .find({ team: teamId })
-      .exec();
+    const users = await this.userModel.find({ team: teamId }).exec();
 
-    return users.map(user => this.mapToResponseDto(user));
+    return users.map((user) => this.mapToResponseDto(user));
   }
 
   async updateLastLogin(userId: string): Promise<void> {
-    await this.userModel.findByIdAndUpdate(userId, {
-      lastLogin: new Date(),
-    }).exec();
+    await this.userModel
+      .findByIdAndUpdate(userId, {
+        lastLogin: new Date(),
+      })
+      .exec();
   }
 
   async getManagerStats(): Promise<any[]> {
     const managers = await this.userModel.find({ role: Role.MANAGER }).exec();
-    const stats = await Promise.all(managers.map(async (manager) => {
-      const projectCount = await this.projectModel.countDocuments({ manager: manager._id }).exec();
-      return {
-        id: manager._id,
-        name: manager.name,
-        email: manager.email,
-        projectCount,
-      };
-    }));
+    const stats = await Promise.all(
+      managers.map(async (manager) => {
+        const projectCount = await this.projectModel
+          .countDocuments({ manager: manager._id })
+          .exec();
+        return {
+          id: manager._id,
+          name: manager.name,
+          email: manager.email,
+          projectCount,
+        };
+      }),
+    );
     return stats;
   }
 
   private mapToResponseDto(user: User): UserResponseDto {
+    let teamId: string | undefined;
+    if (user.team) {
+      if ((user.team as any)._id) {
+        teamId = (user.team as any)._id.toString();
+      } else {
+        teamId = user.team.toString();
+      }
+    }
+
     return {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
       role: user.role,
-      team: user.team ? (user.team as any)._id?.toString() : undefined,
+      team: teamId,
       isActive: user.isActive,
       lastLogin: user.lastLogin,
       createdAt: user.createdAt,

@@ -11,6 +11,12 @@ export class DashboardStatsDto {
 }
 
 export class ProjectPerformanceDto {
+  projectName: string;
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  pendingTasks: number;
+  overdueTasks: number;
   total: number;
   completed: number;
   inProgress: number;

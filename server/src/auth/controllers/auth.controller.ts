@@ -1,4 +1,13 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { LoginDto, RegisterDto } from '../dtos/auth.dto';
 import { AuthResponseDto } from '../responses/auth.response';
@@ -11,7 +20,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly jwtService: JwtService,
-  ) { }
+  ) {}
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
@@ -49,9 +58,14 @@ export class AuthController {
 
     const userId = decoded.sub;
     const isValid = await this.authService.verifyPassword(userId, password);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid current password');
+    }
+
     return {
-      success: isValid,
-      message: isValid ? 'Password verified' : 'Invalid password',
+      success: true,
+      message: 'Password verified',
     };
   }
 }

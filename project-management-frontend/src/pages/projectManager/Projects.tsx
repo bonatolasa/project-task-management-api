@@ -4,7 +4,7 @@ import { type RootState } from '../../store/store';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getManagerProjects } from '../../services/dashboardService';
-import { Plus, Search, Trash2, Clock, Users, Eye } from 'lucide-react';
+import { Plus, Search, Trash2, Clock, Users, Eye, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Project {
@@ -289,6 +289,13 @@ const Projects: React.FC = () => {
                                             style={{ background: '#dbeafe', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', marginRight: 6 }}
                                         >
                                             <Eye size={13} color="#2563eb" />
+                                        </button>
+                                        <button
+                                            onClick={() => navigate(`/manager/projects/edit/${projectId}`)}
+                                            style={{ background: '#f3f4f6', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', marginRight: 6 }}
+                                            title="Edit Project"
+                                        >
+                                            <Pencil size={13} color="#4b5563" />
                                         </button>
                                         <button onClick={() => handleDelete(projectId)} style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
                                             <Trash2 size={13} color="#dc2626" />

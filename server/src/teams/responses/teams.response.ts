@@ -1,12 +1,12 @@
 export class TeamMemberDto {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: string;
 }
 
 export class TeamResponseDto {
-  id: string;
+  _id: string;
   name: string;
   description?: string;
   manager?: TeamMemberDto;

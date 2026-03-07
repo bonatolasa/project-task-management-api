@@ -80,13 +80,9 @@ const ProjectManagerDashboard: React.FC = () => {
                 }
 
                 // Fetch per-project performance – only for projects with a valid ID
-                const validProjects = fetchedProjects.filter((p) => {
-                    const project = p as Project & { id?: string };
-                    return Boolean(project._id || project.id);
-                });
+                const validProjects = fetchedProjects.filter((p) => Boolean(p._id));
                 const perfPromises = validProjects.slice(0, 5).map(async (p) => {
-                    const project = p as Project & { id?: string };
-                    const projectId = project._id || project.id;
+                    const projectId = p._id;
                     if (!projectId) {
                         return { projectName: p.name, totalTasks: 0, completedTasks: 0, overdueTasks: 0, completionRate: 0 };
                     }
@@ -290,8 +286,7 @@ const ProjectManagerDashboard: React.FC = () => {
                             </div>
                         ) : (
                             projects.slice(0, 6).map((project) => {
-                                const projectItem = project as Project & { id?: string };
-                                const projectId = projectItem._id || projectItem.id || project.name;
+                                const projectId = project._id;
                                 return (
                                     <div
                                         key={projectId}

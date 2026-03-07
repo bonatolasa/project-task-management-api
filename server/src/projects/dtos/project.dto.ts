@@ -1,4 +1,13 @@
-import { IsString, IsDate, IsEnum, IsMongoId, IsOptional, Min, Max, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsDate,
+  IsEnum,
+  IsMongoId,
+  IsOptional,
+  Min,
+  Max,
+  IsArray,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ProjectStatus } from '../../enums/project-status.enum';
 import { PartialType } from '@nestjs/mapped-types';
@@ -52,18 +61,19 @@ export class UpdateProjectDto extends PartialType(CreateProjectDto) {
 }
 
 export class ProjectTeamDto {
-  id: string;
+  _id: string;
   name: string;
+  members?: ProjectContributorDto[];
 }
 
 export class ProjectManagerDto {
-  id: string;
+  _id: string;
   name: string;
   email: string;
 }
 
 export class ProjectContributorDto {
-  id: string;
+  _id: string;
   name: string;
   email: string;
 }
