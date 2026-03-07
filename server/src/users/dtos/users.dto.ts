@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsMongoId,
   IsBoolean,
+  Matches,
 } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { Transform } from 'class-transformer';
@@ -21,7 +22,10 @@ export class CreateUserDto {
   email: string;
 
   @IsString()
-  @MinLength(6)
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    message: 'Password is too weak. Must contain uppercase, lowercase, and numbers/symbols',
+  })
   password: string;
 
   @IsEnum(Role)

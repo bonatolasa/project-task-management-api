@@ -17,9 +17,15 @@ export const Signup: React.FC = () => {
     const navigate = useNavigate();
     const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
-    // Check if passwords match
+    // Check if passwords match and meet strength requirements
+    const isPasswordStrong =
+        password.length >= 8 &&
+        /[A-Z]/.test(password) &&
+        /[a-z]/.test(password) &&
+        /[0-9\W]/.test(password);
+
     const passwordsMatch = password === confirmPassword;
-    const isFormValid = name && email && password && confirmPassword && passwordsMatch;
+    const isFormValid = name && email && isPasswordStrong && confirmPassword && passwordsMatch;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -112,6 +118,25 @@ export const Signup: React.FC = () => {
                                 className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-text-main rounded-lg focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                                 placeholder="••••••••"
                             />
+                            {/* Password Requirements Checklist */}
+                            <div className="mt-3 space-y-2">
+                                <p className="text-xs font-semibold text-text-muted mb-2">Password must contain:</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { label: '8+ Characters', met: password.length >= 8 },
+                                        { label: 'Uppercase', met: /[A-Z]/.test(password) },
+                                        { label: 'Lowercase', met: /[a-z]/.test(password) },
+                                        { label: 'Number/Special', met: /[0-9\W]/.test(password) },
+                                    ].map((req, i) => (
+                                        <div key={i} className="flex items-center gap-2">
+                                            <div className={`h-1.5 w-1.5 rounded-full ${req.met ? 'bg-success' : 'bg-gray-300'}`} />
+                                            <span className={`text-[11px] ${req.met ? 'text-success font-medium' : 'text-text-muted'}`}>
+                                                {req.label}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-text-main mb-1" htmlFor="confirmPassword">
@@ -135,24 +160,6 @@ export const Signup: React.FC = () => {
                                 <p className="mt-1 text-sm text-danger">Passwords do not match</p>
                             )}
                         </div>
-                        {/* Role selection removed – uncomment below if needed 
-                        <div>
-                            <label className="block text-sm font-medium text-text-main mb-1" htmlFor="role">
-                                Select Role
-                            </label>
-                            <select
-                                id="role"
-                                name="role"
-                                value={role}
-                                onChange={(e) => setRole(e.target.value)}
-                                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 text-text-main rounded-lg focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm bg-white"
-                            >
-                                <option value="member">Team Member</option>
-                                <option value="manager">Project Manager</option>
-                                <option value="admin">Administrator</option>
-                            </select>
-                        </div>
-                        */}
                     </div>
 
                     <div>

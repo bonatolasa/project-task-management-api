@@ -90,8 +90,15 @@ const UsersManagement: React.FC = () => {
         fetchUsers();
     }, []);
 
+    const isPasswordStrong = (pwd: string) =>
+        pwd.length >= 8 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd) && /[0-9\W]/.test(pwd);
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!isPasswordStrong(form.password)) {
+            toast.error('Password does not meet requirements');
+            return;
+        }
         try {
             await api.post('/users', form);
             toast.success('User created!');
@@ -109,6 +116,12 @@ const UsersManagement: React.FC = () => {
             toast.error('No user selected for update');
             return;
         }
+
+        if (form.password && !isPasswordStrong(form.password)) {
+            toast.error('New password does not meet requirements');
+            return;
+        }
+
         const userId = editUser._id;
         if (!userId) {
             toast.error('User ID is missing – cannot update');
@@ -212,6 +225,22 @@ const UsersManagement: React.FC = () => {
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Password {editUser && '(leave blank to keep)'}</label>
                                 <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required={!editUser} style={inputStyle} />
+                                {/* Password Strength Feedback */}
+                                {(form.password || !editUser) && (
+                                    <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                        {[
+                                            { label: '8+ Chars', met: form.password.length >= 8 },
+                                            { label: 'Uppercase', met: /[A-Z]/.test(form.password) },
+                                            { label: 'Lowercase', met: /[a-z]/.test(form.password) },
+                                            { label: 'Number/Special', met: /[0-9\W]/.test(form.password) },
+                                        ].map((req, i) => (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: req.met ? '#10b981' : '#d1d5db' }} />
+                                                <span style={{ fontSize: 10, color: req.met ? '#10b981' : '#9ca3af', fontWeight: req.met ? 600 : 400 }}>{req.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Role</label>
