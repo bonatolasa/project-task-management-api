@@ -7,20 +7,17 @@ const DEFAULT_LOCAL = 'http://localhost:3000/api';
 const ENV_LOCAL = import.meta.env.VITE_API_LOCAL || DEFAULT_LOCAL;
 const ENV_DEPLOYED = import.meta.env.VITE_API_DEPLOYED || import.meta.env.VITE_API_URL || '';
 
-// Storage keys
-const STORAGE_KEY_MODE = 'apiBaseUrl';           // 'auto' or a fixed URL
-const STORAGE_KEY_LAST_DETECTED = 'lastDetectedApiUrl'; // last working URL when in 'auto' mode
+const STORAGE_KEY = 'apiBaseUrl'; // stores the actual URL (or 'auto' as a special flag)
 
 // ----------------------------------------------------------------------
-// Initial base URL: if mode is 'auto', use last detected URL (if any), otherwise use local default.
+// Determine initial base URL
 // ----------------------------------------------------------------------
 const getInitialBaseUrl = (): string => {
-  const mode = localStorage.getItem(STORAGE_KEY_MODE);
-  if (mode && mode !== 'auto') return mode; // user manually set a fixed URL
-
-  // 'auto' mode (or not set) – use last detected URL if available, otherwise local default
-  const lastDetected = localStorage.getItem(STORAGE_KEY_LAST_DETECTED);
-  return lastDetected || ENV_LOCAL;
+  const stored = localStorage.getItem(STORAGE_KEY);
+  // If it's a real URL (not 'auto'), use it
+  if (stored && stored !== 'auto') return stored;
+  // Otherwise (first run or 'auto' flag) start with local default (detection will run)
+  return ENV_LOCAL;
 };
 
 // ----------------------------------------------------------------------
@@ -32,67 +29,57 @@ const api: AxiosInstance = axios.create({
 });
 
 // ----------------------------------------------------------------------
-// Detection promise – ensures API calls wait for the first detection
+// Auto‑detection (runs only when STORAGE_KEY is 'auto' or missing)
+// After a successful detection, it overwrites STORAGE_KEY with the detected URL,
+// so future loads use that URL directly without re‑detecting.
 // ----------------------------------------------------------------------
 let detectionPromise: Promise<void> | null = null;
 
-/**
- * Ping the local backend with a short timeout.
- * - If the request succeeds (any HTTP status) → local is reachable → use local.
- * - If it fails with a network error (no response) → local is down → use deployed.
- * Updates the "last detected" URL in localStorage so the next load starts with the working URL.
- */
-async function detectBestApiUrl(): Promise<void> {
-  const mode = localStorage.getItem(STORAGE_KEY_MODE);
-  // If user manually set a URL (not 'auto'), do nothing
-  if (mode && mode !== 'auto') return;
+async function detectAndSetBaseUrl(): Promise<void> {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  // If a real URL is already stored (i.e., not 'auto'), do nothing.
+  if (stored && stored !== 'auto') return;
 
   try {
-    // Send HEAD request to the exact base URL (no extra path)
+    // Ping local backend with a short timeout
     await api.head('', { timeout: 1000 });
-    // Any response (2xx, 4xx, 5xx) means the server is reachable
+    // Any response (even 4xx/5xx) means the server is reachable
     console.log('📡 Local backend detected, using:', ENV_LOCAL);
-    setApiBaseUrlInner(ENV_LOCAL, true); // true = update last detected
+    setBaseUrlAndStore(ENV_LOCAL);
   } catch (error) {
     if (isAxiosError(error) && !error.response) {
-      // Network error – server unreachable (down or CORS blocked)
+      // Network error – local is down → fallback to deployed
       console.log('🌐 Local backend unavailable, falling back to:', ENV_DEPLOYED);
       if (ENV_DEPLOYED) {
-        setApiBaseUrlInner(ENV_DEPLOYED, true);
+        setBaseUrlAndStore(ENV_DEPLOYED);
       } else {
         console.warn('No deployed URL configured – staying with local backend (may fail)');
       }
     } else {
-      // HTTP error (4xx/5xx) – server is up, so use local
+      // HTTP error (4xx/5xx) – local is up, so use it
       console.log('📡 Local backend responded (with error), using:', ENV_LOCAL);
-      setApiBaseUrlInner(ENV_LOCAL, true);
+      setBaseUrlAndStore(ENV_LOCAL);
     }
   }
 }
 
-/**
- * Internal setter – updates the axios instance and optionally stores the URL as last detected.
- */
-function setApiBaseUrlInner(url: string, storeAsLastDetected = false): void {
+function setBaseUrlAndStore(url: string): void {
   api.defaults.baseURL = url;
-  if (storeAsLastDetected) {
-    localStorage.setItem(STORAGE_KEY_LAST_DETECTED, url);
-  }
+  localStorage.setItem(STORAGE_KEY, url); // store as fixed URL (no more 'auto')
 }
 
 // ----------------------------------------------------------------------
-// Public functions to get/set the base URL (with 'auto' support)
+// Public functions
 // ----------------------------------------------------------------------
 export function setApiBaseUrl(url: string): void {
   if (url === 'auto') {
-    localStorage.setItem(STORAGE_KEY_MODE, 'auto');
-    // Reset detection promise so it runs again with fresh state
-    detectionPromise = null;
-    detectionPromise = detectBestApiUrl();
+    // User wants to re‑run detection
+    localStorage.setItem(STORAGE_KEY, 'auto');
+    detectionPromise = null; // reset so detection runs again
+    detectionPromise = detectAndSetBaseUrl();
   } else {
-    localStorage.setItem(STORAGE_KEY_MODE, url);
-    // When user sets a fixed URL, also store it as last detected (so it persists)
-    setApiBaseUrlInner(url, true);
+    // User manually set a URL
+    setBaseUrlAndStore(url);
   }
 }
 
@@ -101,20 +88,25 @@ export function getApiBaseUrl(): string | undefined {
 }
 
 // ----------------------------------------------------------------------
-// Start detection immediately and store the promise
+// Start detection only if needed (first run or 'auto' flag present)
 // ----------------------------------------------------------------------
-detectionPromise = detectBestApiUrl();
+if (localStorage.getItem(STORAGE_KEY) === 'auto' || !localStorage.getItem(STORAGE_KEY)) {
+  detectionPromise = detectAndSetBaseUrl();
+} else {
+  // Already have a stored URL – no detection needed
+  detectionPromise = Promise.resolve();
+}
 
 /**
- * Helper to wait for detection before executing an API call.
- * Use this inside every exported function that uses the `api` instance.
+ * Helper to wait for detection (if it's still running) before making a request.
+ * All exported API methods use this to ensure they don't fire before the URL is finalised.
  */
 function withDetection<T>(fn: () => Promise<T>): Promise<T> {
   return (detectionPromise || Promise.resolve()).then(() => fn());
 }
 
 // ----------------------------------------------------------------------
-// Axios interceptors (unchanged – token handling, 401 redirect)
+// Axios interceptors (unchanged)
 // ----------------------------------------------------------------------
 api.interceptors.request.use(
   (config) => {
@@ -143,8 +135,7 @@ api.interceptors.response.use(
 );
 
 // ----------------------------------------------------------------------
-// Grouped API methods – each waits for detection before making the request
-// These are the RECOMMENDED way to call the API.
+// Grouped API methods – each waits for detection (if any) before making the request
 // ----------------------------------------------------------------------
 export const adminApi = {
   getUsers: (params?: Record<string, any>) =>
@@ -165,7 +156,7 @@ export const adminApi = {
 
 export const teamsApi = {
   createTeam: async (team: { name: string; managerId?: string; memberIds?: string[] }) => {
-    await detectionPromise; // alternative to withDetection
+    await detectionPromise;
     const manager = team.managerId;
     const members = team.memberIds || [];
     if (!manager) throw new Error('Team must have at least one manager');
@@ -200,9 +191,7 @@ export const profileApi = {
 };
 
 // ----------------------------------------------------------------------
-// Raw axios instance – EXPORT WITH CAUTION
-// Direct usage may bypass the detection wait and cause requests to the wrong URL.
-// Prefer using the grouped APIs above.
+// Re‑export the axios instance itself if needed elsewhere
 // ----------------------------------------------------------------------
 export { api };
 export default api;
