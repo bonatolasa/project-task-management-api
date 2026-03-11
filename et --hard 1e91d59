@@ -1,0 +1,57 @@
+[33mbae9ce8[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Revert "updated commit in project"
+[33m39a6588[m Merge pull request #1 from bonatolasa/pm_branch
+[33m1e91d59[m updated commit in project
+[33m115f56b[m last commit
+[33mae8af35[m last commit of api
+[33m512d3fc[m reduce redundance and racecondition commit
+[33m1a64953[m restore api commit
+[33m3b7821b[m first commit
+[33mc7e66db[m updated commit
+[33m6068908[m adding vercel json commit
+[33mb8feb79[m adding vercel json commit
+[33mc35a2db[m first commit
+[33mefa800c[m validation password commmit
+[33m0d6adfc[m finally commited project
+[33m8baf29e[m completed project mgt commit
+[33m42d5ab8[m download pdf commit
+[33m35a79a9[m completed commit
+[33m2012f11[m completed commit
+[33m2da0e14[m[33m ([m[1;31morigin/pm_branch[m[33m)[m Merge remote main into local main, resolved conflicts
+[33meda0f8d[m style: login page updated
+[33mbdd4546[m remove cor origin
+[33m6cbbf70[m commit
+[33m695eaf5[m last commit
+[33ma15d929[m Login page buttons are updated
+[33m21686e4[m Mobile app part(Flutter): login and register page ar created
+[33mfee63c8[m first commit
+[33m91dbcec[m cerdential commit
+[33m1cc0347[m enable credintial
+[33m2a18e94[m notification commit
+[33m65460c8[m updated commit
+[33mab77100[m modules commit have admin member and manager dashboard commit
+[33m1cde6b7[m mroject managemenet frontend setup commit
+[33m6b2c664[m completed of round to two decimal place in complation
+[33mb1270e3[m committed properly lasted
+[33ma191b72[m move backend modules into server folder
+[33m9af542e[m completed backend project-task mgt
+[33m33ced4e[m completed report module
+[33m220f8bd[m report module commited
+[33m561e3cf[m completed project schemas commit
+[33mc387d36[m completed tasks schema commit
+[33macdc459[m team schema commit
+[33m8a4a6d4[m user enum commit
+[33m95fa523[m auth enum modify commit
+[33m21d4933[m user schemas commit
+[33m8046170[m completed task modules commit
+[33mcf6849f[m add guard to current user and strategy modify commit
+[33mbef090e[m completed projects module commit
+[33m7170791[m completed team module
+[33m8cdf5f9[m update role os user schemas
+[33m91cbe17[m token generation and role guard
+[33mc4caca3[m first commit
+[33mcdafd9d[m teams module
+[33m9b1f1dc[m Merge branch 'main' of https://github.com/bonatolasa/project-task-management-api
+[33m0d2375e[m auth modules
+[33m9bbb69c[m user extends for other modules
+[33m568cedc[m Update MongoDB URI and JWT secret handling
+[33maa90d95[m project-task-mgt users
