@@ -24,6 +24,7 @@ export class CreateProjectDto {
   team: string;
 
   @IsMongoId()
+  @IsOptional()
   manager: string;
 
   @Type(() => Date)
