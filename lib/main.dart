@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:project_management/core/constants/app_constants.dart';
 import 'package:project_management/core/networks/api_client.dart';
+import 'package:project_management/features/authorization/data/repositories/auth_repository.dart';
 import 'package:project_management/features/authorization/presentation/pages/login.dart';
 import 'package:project_management/features/authorization/presentation/providers/auth_provider.dart';
 import 'package:project_management/features/authorization/presentation/pages/register.dart';
+import 'package:project_management/features/dashboard/data/repositories/dashboard_repository.dart';
+import 'package:project_management/features/dashboard/presentation/pages/admin_dashboard_page.dart';
+import 'package:project_management/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:provider/provider.dart';
 import './theme/app_theme.dart';
-import './features/authorization/data/repositories/auth_repo.dart';
 
 void main() {
   runApp(MyApp());
@@ -15,37 +18,45 @@ void main() {
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
-  //  Create ApiClient instance here
+  // Create ApiClient instance here
   final ApiClient apiClient = ApiClient(baseUrl: AppConstant.baseUrl);
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        //  Provide the ApiClient first
+        // 1. Provide the ApiClient
         Provider<ApiClient>(create: (_) => apiClient),
 
-        //  Then create AuthRepository with the ApiClient
+        // 2. Auth Provider
         ChangeNotifierProvider(
           create: (context) {
-            final apiClient = Provider.of<ApiClient>(context, listen: false);
+            final client = Provider.of<ApiClient>(context, listen: false);
             return AuthProvider(
-              AuthRepository(apiClient), //  Pass the ApiClient here
+              AuthRepositoryImpl(client), 
             );
           },
         ),
 
-        // Task Change Notifier
+        // 3. Dashboard Provider (UPDATED TO USE NAMED PARAMETERS)
+        ChangeNotifierProvider(
+          create: (context) {
+            final client = Provider.of<ApiClient>(context, listen: false);
+            return DashboardProvider(
+              repository: DashboardRepository(apiClient: client), // Added 'repository:' and 'apiClient:'
+            );
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'Project Management App',
         theme: AppTheme.darkblueTheme,
         debugShowCheckedModeBanner: false,
-        initialRoute: '/register',
+        initialRoute: '/login',
         routes: {
-          '/login': (context) => LoginPage(),
-          '/register': (context) => RegisterPage(),
-         
+          '/login': (context) => const LoginPage(),
+          '/register': (context) => const RegisterPage(),
+          '/adminDashboard': (context) => const AdminDashboardPage(),
         },
       ),
     );

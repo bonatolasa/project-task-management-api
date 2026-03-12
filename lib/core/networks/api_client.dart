@@ -10,7 +10,7 @@ class ApiClient {
     required this.baseUrl,
     this.defaultHeaders = const {
       'Content-Type': 'application/json',
-      'Accept': 'appication/json',
+      'Accept': 'application/json',
     },
   });
   

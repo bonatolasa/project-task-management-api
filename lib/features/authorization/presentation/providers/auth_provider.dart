@@ -1,114 +1,50 @@
-// provider is used as a bridge to transfer data between UI to either Domain layer or data layer
-//logout means clearing token or removing token without sending request to backend
-
 import 'package:flutter/material.dart';
-import 'package:project_management/features/authorization/data/repositories/auth_repo.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../domain/entities/user.dart';
+import '../../domain/repositories/auth_repository.dart';
 
-// import'package:chella_app/features/auth/presentation/providers/;
-class AuthProvider with ChangeNotifier {
-  // Initialize repo from the data layer
-  final AuthRepository _repository;
-  //to track loading in our app's state.
-  //folder entity jedhamu uumamuu qaba ture
-  // UserEntity? _currentUser;
-  bool _isLoading = false;
-  bool _userRegistered = false;
-  String? _error;
-  AuthProvider(this._repository);
+class AuthProvider extends ChangeNotifier {
+  final AuthRepository repository;
 
-  //! THE FOLLOWING ARE GETTER METHODS TO GET
-  // THIS VARIABLES IN OTHER CLASSES !
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  //UserEntity? get currentUser => _currentUser;
-  bool get userRegistered => _userRegistered;
+  AuthProvider(this.repository);
+
+  User? user;
+  bool isLoading = false;
+  bool userRegistered = false;
+  String? error;
+
   Future<void> login(String email, String password) async {
-    _isLoading = true;
-    _error = null;
+    isLoading = true;
+    error = null;
+    print("login page");
     notifyListeners();
+    print("login page is loaded");
     try {
-      // final UserModel user =
-      await _repository.login(email, password);
-      // print("${user.username} is what we are looking for");
-
-      // _currentUser = UserEntity(
-
-      //   id:user.id,
-      //    username: user.username,
-      //   fullName:user.fullName,
-      //   referralCode: user.referralCode,
-      //   referredBy: user.referredBy,
-      //   amount:user.amount,
-      //   totalEarned: user.totalEarned,
-      //   totalReferred: user.totalReferred
-      //   // password: user.password,
-      // );
-
-      _error = null;
+      user = await repository.login(email, password);
     } catch (e) {
-      _error = e.toString();
-      print("$_error");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      error = e.toString();
+      print(e);
     }
+
+    isLoading = false;
+    notifyListeners();
   }
 
-  Future<void> register(String name, String email, String password) async {
-    // _isLoading = true;
-    _error = null;
+  Future<void> register(String email, String password, String role) async {
+    isLoading = true;
+    error = null;
+    userRegistered = false;
     notifyListeners();
 
     try {
-      _userRegistered = await _repository.register(name, email, password);
-      notifyListeners();
-
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(
-      //     content: Text("User registered successfully"),
-      //     duration: Duration(seconds: 2),
-      //     backgroundColor: Colors.green,
-      //   ),
-      // );
+      user = await repository.register(email, password, role);
+      userRegistered = true;
     } catch (e) {
-      _error = e.toString();
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(
-      //     content: Text(_error!),
-      //     backgroundColor: Colors.red,
-      //   ),
-      // );
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      error = e.toString();
+      print(e);
     }
+
+    isLoading = false;
+    notifyListeners();
   }
-
-  //  Future<void> refresh() async{
-  //   _isLoading =true;
-  //   _error = null;
-  //   notifyListeners();
-  //   try{
-  //     final UserModel user = await _repository.refresh();
-  //     _currentUser =  UserEntity(
-
-  //         id:user.id,
-  //          username: user.username,
-  //         fullName:user.fullName,
-  //         referralCode: user.referralCode,
-  //         referredBy: user.referredBy,
-  //         amount:user.amount,
-  //         totalEarned: user.totalEarned,
-  //         totalReferred: user.totalReferred
-  //         // password: user.password,
-  //       );
-  //   }
-  //   catch(e){
-  //     _error = e.toString();
-  //   }
-  //   finally{
-  //     _isLoading = false;
-  //     notifyListeners();
-  //   }
-  //   }
 }

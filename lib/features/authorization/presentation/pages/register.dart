@@ -18,30 +18,52 @@ class _RegisterPage extends State<RegisterPage> {
   final _confirmPasswordController = TextEditingController();
 
   void _register() async {
-    if (_formKey.currentState!.validate()) {
-      // Corrected: use _fullnameController for fullname
-      String fullname = _fullnameController.text.trim();
-      String username = _usernameController.text.trim();
-      String password = _passwordController.text.trim();
+  if (_formKey.currentState!.validate()) {
 
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    String fullname = _fullnameController.text.trim();
+    String email = _usernameController.text.trim();
+    String password = _passwordController.text.trim();
 
-      // Start the registration process
-      await authProvider.register(fullname, username, password);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+
+      await authProvider.register(
+        email,
+        password,
+        "member", // default role (admin can change later)
+      );
+
       if (authProvider.userRegistered) {
+
         final snackbarDelay = ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Registration Successful! Now you can login")),
+          const SnackBar(
+            content: Text("Registration Successful! Now you can login"),
+          ),
         );
+
         await snackbarDelay.closed;
-        // Navigate to Home or Login after successful registration
+
         Navigator.pushNamed(context, '/login');
+
       } else {
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authProvider.error ?? "Registration Failed")),
+          SnackBar(
+            content: Text(authProvider.error ?? "Registration Failed"),
+          ),
         );
       }
+
+    } catch (e) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
